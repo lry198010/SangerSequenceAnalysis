@@ -1,8 +1,9 @@
 #!/usr/bin/python3
 
-import os, sys, getopt
-import subprocess
-import fileinput
+import os, sys, getopt, subprocess, fileinput
+# Get the script directory 
+strLibPath = os.path.split(sys.path.split(sys.argv[0]))[0] 
+sys.path.append(strLibPath)
 
 def getAb1Files(wkdir,ab1ListTo):
     iNumFiles = 0
@@ -199,7 +200,7 @@ nMaxVect = 20 # max length of sequence match vector that not screen
 nameIndex = 1
 
 ttuner = "/home/tyhy/biosoft/tracetuner_3.0.6beta/rel/Linux_64/ttuner"
-blastn = '/home/tyhy/biosoft/ncbi-blast-2.9.0+/bin/blastn -db /home/tyhy/biosoft/Vector/UniVec -task blastn -reward 1 -penalty -5 -gapopen 3 -gapextend 3 -dust yes -soft_masking true -evalue 700 -searchsp 1750000000000 -max_target_seqs 20 -outfmt "6 qaccver qlen saccver slen evalue score bitscore length nident pident mismatch gapopen gaps qstart qend sstart send qseq sseq"'
+blastn = '/home/tyhy/biosoft/ncbi-blast-2.9.0+/bin/blastn -db /home/tyhy/biosoft/Vector/UniVec -task blastn -reward 1 -penalty -5 -gapopen 3 -gapextend 3 -dust yes -soft_masking true -evalue 700 -searchsp 1750000000000 -max_target_seqs 20 -outfmt "6 qaccver qlen saccver slen length evalue score bitscore nident pident mismatch gapopen gaps qstart qend sstart send qseq sseq"'
 cap3 = "/home/tyhy/biosoft/CAP3/cap3"
 
 ab1List = "allab1.list"

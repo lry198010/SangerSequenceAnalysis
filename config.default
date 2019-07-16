@@ -4,19 +4,20 @@
     "blastn" : "/home/lry/soft/ncbi-blast-2.9.0+/bin/blastn",
     "cap3"   : "/home/lry/soft/CAP3/cap3"
   },
-  "VectorDefault" : {
+  "Vector" : {
     "NCBIUnivec"      : "/home/lry/soft/Vector/UniVec",
-    "NCBIUnivec_Core" : "/home/lry/soft/Vector/UniVec_Core"
+    "NCBIUnivec_Core" : "/home/lry/soft/Vector/UniVec_Core",
+    "user1"           : ""
   },
   "Qual" : {
-    "Parttuner"    : "",
+    "Parttuner"    : "-trim_threshold 20",
     "ParBlastn"    : "-task blastn -reward 1 -penalty -5 -gapopen 3 -gapextend 3 -dust yes -soft_masking true -evalue 700 -searchsp 1750000000000 -max_target_seqs 20 -outfmt \"6 qaccver qlen saccver slen length evalue score bitscore nident pident mismatch gapopen gaps qstart qend sstart send qseq sseq\"",
     "Parcap3"      : "",
     "VectorScreen" : 1
   },
-  "KeepTmp" : 0
-  "tmp"         : "tmp"
-  "AB1FileList" : "all.ab1.list"
-  "rawSeq"      : "all.fa"
+  "KeepTmp" : 0,
+  "tmp"         : "tmp",
+  "AB1ListFile" : "all.ab1.list",
+  "rawSeq"      : "all.fa",
   "rawQual"     : "all.fa.qual"
 }

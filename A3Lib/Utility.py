@@ -1,4 +1,4 @@
-import os,json,subprocess
+import os,json,subprocess,fileinput
 
 AB1FileSuffix = ("ab1","AB1","Ab1","aB1")
 def lGetAB1Files(strWorkDir):
@@ -39,7 +39,7 @@ def iAB1PathList2File(lAB1Files, strToFileName):
     fout = open(strToFileName,'w')
     for strAB1File in lAB1Files:
         if os.path.isfile(strAB1File):
-            fout.write(strAB1File,"\n")
+            fout.write(strAB1File + "\n")
             iNumAB1File += 1
     fout.close()
     if iNumAB1File <= 0 : os.remove(strToFileName)
@@ -52,7 +52,50 @@ def dGetSetting(strSettingJson):
     cff.close()
     return conf
 
-def dRunExternalProg(lProgPars,lAB1Files):
+def iGetSeqQualFileByTtuner(lProgPars, lAB1Files,strFileList2File):
+    iNumFile = iAB1PathList2File(lAB1Files, strFileList2File)
+    if iNumFile <= 0:
+        return 0
+    else:
+        subP = dRunExternalProg(lProgPars + [strFileList2File])
+        return subP
+
+def dRunExternalProg(lProgPars):
     strRun = " ".join(lProgPars)
     subP = subprocess.run(" ".join(lProgPars),shell = True)
     return subP
+
+def dGetSeqFromFastFile(strFastSeqFile):
+    dSeq = dict()
+    strSeqN = ''
+    if os.path.isfile(strFastSeqFile):
+        with fileinput.input(strFastSeqFile) as lines:
+            for line in lines:
+                line = line.strip()
+                if line.startswith('>'):
+                    strSeqN = line.strip('>')
+                    if strSeqN in dSeq: print("Duplication:" + strSeqN)
+                    dSeq[strSeqN] = ''
+                else:
+                    dSeq[strSeqN] += line
+    else:
+        print("Error, File not exists:" + strFastSeqFile)
+    return dSeq
+
+def dGetQualFromFastFile(strFastQualFile):
+    dSeq = dict()
+    strSeqN = ''
+    if os.path.isfile(strFastQualFile):
+        with fileinput.input(strFastQualFile) as lines:
+            for line in lines:
+                line = line.strip()
+                if line.startswith('>'):
+                    strSeqN = line.strip('>')
+                    if strSeqN in dSeq: print("Duplication:" + strSeqN)
+                    dSeq[strSeqN] = ''
+                else:
+                    dSeq[strSeqN] += ' ' + line
+    else:
+        print("Error, File not exists:" + strFastSeqFile)
+    return dSeq
+

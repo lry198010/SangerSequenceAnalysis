@@ -58,7 +58,7 @@ def iGetSeqQualFileByTtuner(lProgPars, lAB1Files,strFileList2File):
         return 0
     else:
         subP = dRunExternalProg(lProgPars + [strFileList2File])
-        return subP
+        return iNumFile
 
 def dRunExternalProg(lProgPars):
     strRun = " ".join(lProgPars)

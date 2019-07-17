@@ -11,13 +11,27 @@
   },
   "Qual" : {
     "Parttuner"    : "-trim_threshold 20",
-    "ParBlastn"    : "-task blastn -reward 1 -penalty -5 -gapopen 3 -gapextend 3 -dust yes -soft_masking true -evalue 700 -searchsp 1750000000000 -max_target_seqs 20 -outfmt \"6 qaccver qlen saccver slen length evalue score bitscore nident pident mismatch gapopen gaps qstart qend sstart send qseq sseq\"",
-    "Parcap3"      : "",
+    "Parblastn"    : "-task blastn -reward 1 -penalty -5 -gapopen 3 -gapextend 3 -dust yes -soft_masking true -evalue 700 -searchsp 1750000000000 -max_target_seqs 20 -outfmt \"6 qaccver qlen saccver slen length evalue score bitscore nident pident mismatch gapopen gaps qstart qend sstart send qseq sseq\"",
+    "Vector"       : {
+                       "NCBIUnivec"  :  "/home/lry/soft/Vector/UniVec",
+                       "Test1"       :  ""
+                     },
+    "blastSuff"    : ".bln",
     "VectorScreen" : 1
   },
-  "KeepTmp" : 0,
+  "Assembly": {
+    "Parcap3"    : "",
+    "SampleSeq"  : ".hq.fa",
+    "SampleQual" : ".hq.fa.qual",
+    "keepTmp"    : 0
+  },
+  "Stam"        : "all",
+  "KeepTmp"     : 0,
   "tmp"         : "tmp",
   "AB1ListFile" : "all.ab1.list",
   "rawSeq"      : "all.fa",
-  "rawQual"     : "all.fa.qual"
+  "rawQual"     : "all.fa.qual",
+  "blastOut"    : "all.bln",
+  "HQSeq"       : "all.hq.fa",
+  "HQQual"      : "all.hq.fa.qual"
 }

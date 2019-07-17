@@ -14,9 +14,12 @@ conf = AU.dGetSetting(conf[0])
 
 strWorkDir = os.getcwd()
 print(strWorkDir)
-#lAB1Files = AU.lGetAB1Files(strWorkDir)
+lAB1Files = AU.lGetAB1Files(strWorkDir)
 #print(AU.iGetSeqQualFileByTtuner([conf['ExternalProg']['ttuner'], '-sa', strWorkDir + "/" + conf['rawSeq'],'-qa', strWorkDir + '/' + conf['rawQual'], '-if'], lAB1Files, strWorkDir + '/' + conf['AB1ListFile']))
 
 #print(AU.dGetSeqFromFastFile(strWorkDir + '/' + conf['rawSeq']))
 #print(AU.dGetQualFromFastFile(strWorkDir + '/' + conf['rawQual']))
-print(AQ.dGetSeqQualStatByTtunerOut(strWorkDir + '/' + conf['rawSeq']))
+#print(AQ.dGetSeqQualStatByTtunerOut(strWorkDir + '/' + conf['rawSeq']))
+#AQ.dQualityStat(lAB1Files,conf,strWorkDir)
+strSeqFile = strWorkDir + '/' + conf['rawSeq']
+AQ.dGetSeqVectorStat(strSeqFile,conf,strWorkDir)

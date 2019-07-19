@@ -15,16 +15,27 @@ conf = AU.dGetSetting(conf[0])
 strWorkDir = os.getcwd()
 print(strWorkDir)
 lAB1Files = AU.lGetAB1Files(strWorkDir)
-#print(AU.iGetSeqQualFileByTtuner([conf['ExternalProg']['ttuner'], '-sa', strWorkDir + "/" + conf['rawSeq'],'-qa', strWorkDir + '/' + conf['rawQual'], '-if'], lAB1Files, strWorkDir + '/' + conf['AB1ListFile']))
 
-#print(AU.dGetSeqFromFastFile(strWorkDir + '/' + conf['rawSeq']))
-#print(AU.dGetQualFromFastFile(strWorkDir + '/' + conf['rawQual']))
-#print(AQ.dGetSeqQualStatByTtunerOut(strWorkDir + '/' + conf['rawSeq']))
-#AQ.dQualityStat(lAB1Files,conf,strWorkDir)
-strSeqFile = strWorkDir + '/' + conf['rawSeq']
-dCleanCover = dict()
-#dVectorStat = AQ.dGetSeqVectorStat(strSeqFile,conf,strWorkDir,dCleanCover)
-dLQStat = AQ.dGetSeqQualStatByTtunerOut(strSeqFile,conf,strWorkDir,dCleanCover)
+dQualStat = AQ.dQualityStat(lAB1Files,conf,strWorkDir)
+for k,lStat in dQualStat.items():
+    print(lStat)
 
-for k,v in dLQStat.items():
-    print(v + [k])
+#strSeqFile = strWorkDir + '/' + conf['rawSeq']
+#dLQCover = dict()
+#dLQStat = AQ.dGetSeqQualStatByTtunerOut(strSeqFile,conf,strWorkDir,dLQCover)
+#dVectorCover = dict()
+#dVectorStat = AQ.dGetSeqVectorStat(strSeqFile,conf,strWorkDir,dVectorCover)
+#AQ.bRefineQVRegion(dVectorCover,conf)
+#dCombinedCover = AQ.dCleanCoverCombine([dLQCover,dVectorCover])
+#dHQRegion = AQ.dGetMaxRegion(dCombinedCover,conf)
+#for k in dCombinedCover.keys():
+#    print(k)
+#    if k in dLQCover: print(dLQCover[k])
+#    if k in dVectorCover: print(dVectorCover[k])
+#    print(dCombinedCover[k])
+#    print(dHQRegion[k])
+
+#dLQStat = AQ.dGetSeqQualStatByTtunerOut(strSeqFile,conf,strWorkDir,dCleanCover)
+
+#for k,v in dLQStat.items():
+#    print(v + [k])

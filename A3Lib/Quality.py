@@ -9,13 +9,41 @@ def dQualityStat(lAB1Files,conf,strWorkDir):
     strRawSeq = strWorkDir + '/' + conf['rawSeq']
     strRawQual = strWorkDir + '/' + conf['rawQual']
     lTtunerPar = [conf['ExternalProg']['ttuner'], '-sa', strRawSeq, '-qa', strRawQual,'-if', strAB1ListFile]
-    iNumAB1File = Utility.iGetSeqQualFileByTtuner(lTtunerPar, lAB1Files, strAB1ListFile)
+    iNumAB1File = 1
+    #iNumAB1File = Utility.iGetSeqQualFileByTtuner(lTtunerPar, lAB1Files, strAB1ListFile)
+    dStat = dict()
     if iNumAB1File > 0:
         #lHQStat = [Utility.strGetAB1SampleName(strSeqIdentity),strSeqIdentity,int(iSeqLen)]
-        dCleanCover = dict()
-        dHQStat = dGetSeqQualStatByTtunerOut(strRawSeq,dCleanCover)
-        print(dCleanCover)
-        #dVectorStat = dGetSeqVectorStat()
+        dLQCover = dict()
+        dLQStat = dGetSeqQualStatByTtunerOut(strRawSeq,conf,strWorkDir,dLQCover)
+        dVectorCover = dict()
+        dVectorStat = dGetSeqVectorStat(strRawSeq,conf,strWorkDir,dVectorCover)
+        bRefineQVRegion(dVectorCover,conf)
+        dCmbCover = dCleanCoverCombine([dLQCover,dVectorCover])
+        dHQRegion = dGetMaxRegion(dCmbCover)
+        dQVStat = dGetQVStat(dCmbCover)
+        
+        for k,lBase in dCmbCover.items():
+            lStat = [Utility.strGetAB1SampleName(k),k,len(lBase)]
+            if k in dLQStat:
+                lStat += dLQStat[k]
+            else:
+                lStat += [0,0,'','']
+            if k in dVectorStat: 
+                lStat += dVectorStat[k]
+            else:
+                lStat += [0,0,'','']
+            if k in dQVStat: 
+                lStat += dQVStat[k]
+            else:
+                lStat += [0,0,'','']
+            if k in dHQRegion: 
+                lStat += dHQRegion[k]
+            else:
+                lStat += [-1,0]
+            dStat[k] = lStat
+
+    return dStat
 
 # dAb1File = {"sample":[filepath,filepath,...],...}
 def getAB1Entries(dAB1File):
@@ -148,6 +176,12 @@ def dGetQVStat(dCleanCover):
                 '-'.join([str(i) for i in lMaxHQRegion])] 
     return dStat
 
+def dGetMaxRegion(dCover,conf = {}):
+    dRegion = dict()
+    for strSeqId,lCover in dCover.items():
+        dRegion[strSeqId] = lGetMaxRegion(lCover)
+    return dRegion
+
 def lGetMaxRegion(lBaseCover,conf = {}):
     iPos = -1
     iNum = 0
@@ -164,3 +198,32 @@ def lGetMaxRegion(lBaseCover,conf = {}):
     if lRegion[1] < iNum: lRegion = [iPos + 1,iPos + iNum]
     return lRegion
 
+def bRefineQVRegion(dCover,conf):
+    iMaxRegion = conf['Qual']['MaxVectsKeep']
+    for strSeqId,lBaseCover in dCover.items():
+        iPos = -1
+        iNum = 0
+        for i in range(0,len(lBaseCover)):
+            if lBaseCover[i] > 0:
+                if iPos == -1: iPos = i
+                iNum += 1
+            else:
+                if iNum <= iMaxRegion:
+                    for j in range(iPos,iPos + iNum):
+                        lBaseCover[j] = 0
+                if iNum > 0:
+                    iPos = -1
+                    iNum = 0
+        if iNum <= iMaxRegion:
+            for j in range(iPos,iPos + iNum):
+                lBaseCover[j] = 0
+
+def dCleanCoverCombine(ldCleanCover):
+    dCombined = dict()
+    for dCleanCover in ldCleanCover:
+        for strSeqId,lBase in dCleanCover.items():
+            if not strSeqId in dCombined:
+                dCombined[strSeqId] = [0] * len(lBase)
+            for i in range(0,len(lBase)):
+                dCombined[strSeqId][i] += lBase[i]
+    return dCombined 

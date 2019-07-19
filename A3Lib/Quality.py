@@ -1,4 +1,4 @@
-import os,sys #,Utility
+import os,sys,fileinput #,Utility
 strLibPath = os.path.abspath(__file__) 
 strLibPath = os.path.split(strLibPath)[0]
 sys.path.append(strLibPath)
@@ -13,24 +13,24 @@ def dQualityStat(lAB1Files,conf,strWorkDir):
     if iNumAB1File > 0:
         dCleanCover = dict()
         dHQStat = dGetSeqQualStatByTtunerOut(strRawSeq,dCleanCover)
-        #print(dCleanCover)
+        print(dCleanCover)
         #dVectorStat = dGetSeqVectorStat()
 
 # dAb1File = {"sample":[filepath,filepath,...],...}
 def getAB1Entries(dAB1File):
     return "ok"
 
-def dGetCleanCover(strSeqFile):
-    dCleanCover = dict()
+def dGetCleanCover(strSeqFile,dCleanCover = {}):
     dSeq = Utility.dGetSeqFromFastFile(strSeqFile)
     for strSeqN,strSeq in dSeq.items():
         strSeqIdentity = strSeqN.split()[0]
-        dCleanCover[strSeqIdentity] = [0] * len(strSeq)
+        if not strSeqIdentity in dCleanCover:
+            dCleanCover[strSeqIdentity] = [0] * len(strSeq)
     return dCleanCover
 
 # get high quality data from output of ttuner 
 # seqname seqlen high_Quality_Start len_of_high_Quality_Region
-def dGetSeqQualStatByTtunerOut(strSeqQualFile,dCleanCover = {}):
+def dGetSeqQualStatByTtunerOut(strSeqQualFile,conf,strWorkDir,dCleanCover = {}):
     dHQStat = dict()
     dSeq = Utility.dGetSeqFromFastFile(strSeqQualFile)
     for strSeqN in dSeq.keys():
@@ -61,17 +61,98 @@ def dGetSeqQualStatByTtunerOut(strSeqQualFile,dCleanCover = {}):
         dHQStat[strSeqN] = lHQStat
     return dHQStat
 
-def dGetSeqVectorStat(strSeqFile,conf,strWorkDir):
+def dGetSeqVectorStat(strSeqFile,conf,strWorkDir,dCleanCover={}):
     lBlast = [conf['ExternalProg']['blastn'], conf['Qual']['Parblastn'],'-query', strSeqFile]
     strStam = strWorkDir + "/" + conf['Stam'] + "."
     strBlastSuff = conf['Qual']['blastSuff']
+
+    dBlnFiles = []
+
     for VectorName,VectorSeq in conf['Qual']['Vector'].items():
         if os.path.isfile(VectorSeq):
             strBlastOut = strStam + VectorName + strBlastSuff
             print("Run blastn:" + strBlastOut)
             Utility.dRunExternalProg(lBlast + ['-subject',VectorSeq,'-out', strBlastOut])
+            dBlnFiles.append(strBlastOut)
 
-def dGetSeqVectorCover(strBlnFile,dCleanCover={}):
+    dVectorRegion = dict()
+    dCleanCover = dGetCleanCover(strSeqFile,dCleanCover)
+    if len(dBlnFiles) > 0:
+        for strBlnFile in dBlnFiles:
+            dTmpVectorRegion = dGetSeqVectorCover(strBlnFile,conf,dCleanCover)
+            for strSeqId,strRegion in dTmpVectorRegion.items():
+                if not strSeqId in dVectorRegion:
+                    dVectorRegion[strSeqId] = strRegion
+                else:
+                    dVectorRegion[strSeqId] += ';' + strRegion
+
+    dVectorStat = dGetQVStat(dCleanCover) 
+    for strSeqId in dVectorRegion.keys():
+        if strSeqId in dVectorStat:
+            dVectorStat[strSeqId].append(dVectorRegion[strSeqId])
+        else:
+            dVectorStat[strSeqId] = [0,0,'','']
+    for strSeqId in dVectorStat:
+        if not strSeqId in dVectorRegion:
+            dVectorStat[strSeqId].append('')
+    return dVectorStat
+
+
+def dGetSeqVectorCover(strBlnFile,conf,dCleanCover={}):
     dSeqVectorRegion = dict()
+    isAcc   = conf['Qual']['sAcc']
+    iqAcc   = conf['Qual']['qAcc']
+    iqLen   = conf['Qual']['qLen']
+    iqStart = conf['Qual']['qStart']
+    iqEnd   = conf['Qual']['qEnd']
+    isStart = conf['Qual']['sStart']
+    isEnd   = conf['Qual']['sEnd']
+    with fileinput.input(strBlnFile) as lines:
+        for line in lines:
+            line = line.strip()
+            fields = line.split()
+            if not fields[iqAcc] in dCleanCover:
+                dCleanCover[fields[iqAcc]] = [0] * int(fields[iqLen])
+            for i in range(int(fields[iqStart])-1,int(fields[iqEnd])):
+                dCleanCover[fields[iqAcc]][i] += 1
+            if not fields[iqAcc] in dSeqVectorRegion:
+                dSeqVectorRegion[fields[iqAcc]] = []
+            strVectorRegion = fields[isAcc] + ':' 
+            strVectorRegion += fields[iqStart] + '-' + fields[iqEnd]
+            dSeqVectorRegion[fields[iqAcc]].append(strVectorRegion)
+    for strSeqId in dSeqVectorRegion.keys():
+        dSeqVectorRegion[strSeqId] = ';'.join(dSeqVectorRegion[strSeqId])
+    return dSeqVectorRegion
 
+# tb,total base of QV[Quality/Vector];
+# tbp,percent of tb
+# mcl, max continous length of nQV
+def dGetQVStat(dCleanCover):
+    dStat = dict()
+    for strSeqId,lBase in dCleanCover.items():
+        iNumBaseCovered = 0
+        iLen = len(lBase)
+        for i in lBase:
+            if i > 0: iNumBaseCovered += 1
+        lMaxHQRegion = lGetMaxRegion(lBase)
+        dStat[strSeqId] = [iNumBaseCovered,
+                iNumBaseCovered/iLen,
+                '-'.join([str(i) for i in lMaxHQRegion])] 
+    return dStat
+
+def lGetMaxRegion(lBaseCover,conf = {}):
+    iPos = -1
+    iNum = 0
+    lRegion = [-1,0]
+    for i in range(0,len(lBaseCover)):
+        if lBaseCover[i] == 0:
+            if iPos == -1: iPos = i
+            iNum += 1
+        else:
+            if lRegion[1] < iNum: lRegion = [iPos,iPos + iNum-1]
+            if iNum > 0:
+                iPos = -1
+                iNum = 0
+    if lRegion[1] < iNum: lRegion = [iPos,iPos + iNum-1]
+    return lRegion
 

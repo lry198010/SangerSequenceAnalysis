@@ -12,12 +12,20 @@
   "Qual" : {
     "Parttuner"    : "-trim_threshold 20",
     "Parblastn"    : "-task blastn -reward 1 -penalty -5 -gapopen 3 -gapextend 3 -dust yes -soft_masking true -evalue 700 -searchsp 1750000000000 -max_target_seqs 20 -outfmt \"6 qaccver qlen saccver slen length evalue score bitscore nident pident mismatch gapopen gaps qstart qend sstart send qseq sseq\"",
+    "qStart"       : 13,
+    "qEnd"         : 14,
+    "sStart"       : 15,
+    "sEnd"         : 16,
+    "qAcc"         : 0,
+    "qLen"         : 1,
+    "sAcc"         : 2,
     "Vector"       : {
                        "NCBIUnivec"  :  "/home/lry/soft/Vector/UniVec",
                        "Test1"       :  ""
                      },
     "blastSuff"    : ".bln",
-    "VectorScreen" : 1
+    "VectorScreen" : 1,
+    "MaxVectsKeep" : 20
   },
   "Assembly": {
     "Parcap3"    : "",

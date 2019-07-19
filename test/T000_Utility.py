@@ -23,7 +23,8 @@ lAB1Files = AU.lGetAB1Files(strWorkDir)
 #AQ.dQualityStat(lAB1Files,conf,strWorkDir)
 strSeqFile = strWorkDir + '/' + conf['rawSeq']
 dCleanCover = dict()
-dVectorStat = AQ.dGetSeqVectorStat(strSeqFile,conf,strWorkDir,dCleanCover)
+#dVectorStat = AQ.dGetSeqVectorStat(strSeqFile,conf,strWorkDir,dCleanCover)
+dLQStat = AQ.dGetSeqQualStatByTtunerOut(strSeqFile,conf,strWorkDir,dCleanCover)
 
-for k,v in dVectorStat.items():
+for k,v in dLQStat.items():
     print(v + [k])

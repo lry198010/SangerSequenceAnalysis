@@ -11,6 +11,7 @@ def dQualityStat(lAB1Files,conf,strWorkDir):
     lTtunerPar = [conf['ExternalProg']['ttuner'], '-sa', strRawSeq, '-qa', strRawQual,'-if', strAB1ListFile]
     iNumAB1File = Utility.iGetSeqQualFileByTtuner(lTtunerPar, lAB1Files, strAB1ListFile)
     if iNumAB1File > 0:
+        #lHQStat = [Utility.strGetAB1SampleName(strSeqIdentity),strSeqIdentity,int(iSeqLen)]
         dCleanCover = dict()
         dHQStat = dGetSeqQualStatByTtunerOut(strRawSeq,dCleanCover)
         print(dCleanCover)
@@ -31,35 +32,42 @@ def dGetCleanCover(strSeqFile,dCleanCover = {}):
 # get high quality data from output of ttuner 
 # seqname seqlen high_Quality_Start len_of_high_Quality_Region
 def dGetSeqQualStatByTtunerOut(strSeqQualFile,conf,strWorkDir,dCleanCover = {}):
-    dHQStat = dict()
+    dLQRegion = dict()
     dSeq = Utility.dGetSeqFromFastFile(strSeqQualFile)
     for strSeqN in dSeq.keys():
-        strSeqIdentity,iSeqLen, iHQStart, iHQLen = strSeqN.split()
+        strSeqId,iSeqLen, iHQStart, iHQLen = strSeqN.split()
         iSeqLen = int(iSeqLen)
         iHQStart = int(iHQStart)
         iHQLen = int(iHQLen)
-        if not strSeqN in dCleanCover:
-            dCleanCover[strSeqIdentity] = [0] * iSeqLen
-        for i in range(0,iHQStart-1):
-            dCleanCover[strSeqIdentity][i] += 1
-        for i in range(iHQStart + iHQLen-1,iSeqLen):
-            dCleanCover[strSeqIdentity][i] += 1
-        lHQStat = [Utility.strGetAB1SampleName(strSeqIdentity),strSeqIdentity,int(iSeqLen)]
+        if not strSeqId in dCleanCover:
+            dCleanCover[strSeqId] = [0] * iSeqLen
+
+        lLowRegion = []
         if iHQLen > 0:
-            lHQStat.append(iSeqLen - iHQLen)
-            lHQStat.append((iSeqLen - iHQLen)/iSeqLen * 100)
-            lLowRegion = []
+            for i in range(0,iHQStart-1):
+                dCleanCover[strSeqId][i] += 1
+            for i in range(iHQStart + iHQLen-1,iSeqLen):
+                dCleanCover[strSeqId][i] += 1
+
             if iHQStart > 1: lLowRegion.append('1-' + str(iHQStart-1))
             if iHQStart + iHQLen < iSeqLen: lLowRegion.append(str(iHQStart + iHQLen) + '-' + str(iSeqLen))
-            lHQStat.append(';'.join(lLowRegion))
-            lHQStat.append(str(iHQStart) + "-" + str(iHQStart + iHQLen - 1))
         else:
-           lHQStat.append(iSeqLen)
-           lHQStat.append(100)
-           lHQStat.append('1-' + str(iSeqLen-1))
-           lHQStat.append('')
-        dHQStat[strSeqN] = lHQStat
-    return dHQStat
+            for i in range(0,iSeqLen):
+                dCleanCover[strSeqId][i] += 1
+            lLowRegion.append('1-' + str(iSeqLen-1))
+
+        dLQRegion[strSeqId] =';'.join(lLowRegion)
+
+    dLQStat = dGetQVStat(dCleanCover)
+    for strSeqId in dLQRegion.keys():
+        if strSeqId in dLQStat:
+            dLQStat[strSeqId].append(dLQRegion[strSeqId])
+        else:
+            dLQStat[strSeqId] = [0,0,'','']
+    for strSeqId in dLQStat:
+        if not strSeqId in dLQRegion:
+            dLQStat[strSeqId].append('')
+    return dLQStat
 
 def dGetSeqVectorStat(strSeqFile,conf,strWorkDir,dCleanCover={}):
     lBlast = [conf['ExternalProg']['blastn'], conf['Qual']['Parblastn'],'-query', strSeqFile]
@@ -136,7 +144,7 @@ def dGetQVStat(dCleanCover):
             if i > 0: iNumBaseCovered += 1
         lMaxHQRegion = lGetMaxRegion(lBase)
         dStat[strSeqId] = [iNumBaseCovered,
-                iNumBaseCovered/iLen,
+                iNumBaseCovered/iLen * 100,
                 '-'.join([str(i) for i in lMaxHQRegion])] 
     return dStat
 
@@ -149,10 +157,10 @@ def lGetMaxRegion(lBaseCover,conf = {}):
             if iPos == -1: iPos = i
             iNum += 1
         else:
-            if lRegion[1] < iNum: lRegion = [iPos,iPos + iNum-1]
+            if lRegion[1] < iNum: lRegion = [iPos + 1,iPos + iNum]
             if iNum > 0:
                 iPos = -1
                 iNum = 0
-    if lRegion[1] < iNum: lRegion = [iPos,iPos + iNum-1]
+    if lRegion[1] < iNum: lRegion = [iPos + 1,iPos + iNum]
     return lRegion
 

@@ -13,11 +13,11 @@ def lGetAB1Files(strWorkDir):
 def strGetAB1SampleName(strAB1FilePath, strSplit = ".", iNameIndex = 1):
     strName = os.path.split(strAB1FilePath)[1]
     if len(strName) == 0:
-        return ""
+        return ''
     else:
         lParts = strName.split(strSplit)
         if len(lParts)-1 < iNameIndex:
-            return ""
+            return ''
         else:
             return lParts[iNameIndex]
 
@@ -35,15 +35,17 @@ def dGetAB1Sample(lAB1Files, strSplit = ".", iNameIndex = 1):
     return dSample
 
 def iAB1PathList2File(lAB1Files, strToFileName):
-    iNumAB1File = 0
-    fout = open(strToFileName,'w')
+    lAB1s = []
     for strAB1File in lAB1Files:
         if os.path.isfile(strAB1File):
-            fout.write(strAB1File + "\n")
-            iNumAB1File += 1
-    fout.close()
-    if iNumAB1File <= 0 : os.remove(strToFileName)
-    return iNumAB1File
+            lAB1s.append(strAB1File)
+    iNumAB1s = len(lAB1s)
+    if iNumAB1s > 0 :
+        fout = open(strToFileName,'w')
+        for strAB1 in lAB1s:
+            fout.write(strAB1 + '\n')
+        fout.close()
+    return iNumAB1s
 
 
 def dGetSetting(strSettingJson):
@@ -65,7 +67,7 @@ def dRunExternalProg(lProgPars):
     subP = subprocess.run(" ".join(lProgPars),shell = True)
     return subP
 
-def dGetSeqFromFastFile(strFastSeqFile):
+def dGetSeqFromFastFile(strFastSeqFile, bToSeqId = 0):
     dSeq = dict()
     strSeqN = ''
     if os.path.isfile(strFastSeqFile):
@@ -74,6 +76,7 @@ def dGetSeqFromFastFile(strFastSeqFile):
                 line = line.strip()
                 if line.startswith('>'):
                     strSeqN = line.strip('>')
+                    if bToSeqId: strSeqN = strSeqN.split()[0]
                     if strSeqN in dSeq: print("Duplication:" + strSeqN)
                     dSeq[strSeqN] = ''
                 else:
@@ -82,7 +85,7 @@ def dGetSeqFromFastFile(strFastSeqFile):
         print("Error, File not exists:" + strFastSeqFile)
     return dSeq
 
-def dGetQualFromFastFile(strFastQualFile):
+def dGetQualFromFastFile(strFastQualFile,bToSeqId = 0):
     dSeq = dict()
     strSeqN = ''
     if os.path.isfile(strFastQualFile):
@@ -91,11 +94,68 @@ def dGetQualFromFastFile(strFastQualFile):
                 line = line.strip()
                 if line.startswith('>'):
                     strSeqN = line.strip('>')
+                    if bToSeqId: strSeqN = strSeqN.split()[0]
                     if strSeqN in dSeq: print("Duplication:" + strSeqN)
                     dSeq[strSeqN] = ''
                 else:
                     dSeq[strSeqN] += ' ' + line
     else:
-        print("Error, File not exists:" + strFastSeqFile)
+        print("Error, File not exists:" + strFastQualFile )
+    for strSeqN,strQual in dSeq.items():
+        dSeq[strSeqN] = strQual.split()
     return dSeq
 
+def bWriteSeqToFile(dSeq,strToFile,iBasesPerLine = 60,strNewLine = '\n'):
+    fout = open(strToFile,'w')
+    for strSeqId,strSeq in dSeq.items():
+        fout.write('>' + strSeqId + strNewLine)
+        lBegin = 0
+        lEnd = iBasesPerLine
+        if lEnd > len(strSeq):lEnd = len(strSeq)
+        while lBegin < len(strSeq):
+            fout.write(strSeq[lBegin:lEnd] + strNewLine)
+            lBegin = lEnd
+            lEnd += iBasesPerLine
+            if lEnd > len(strSeq): lEnd = len(strSeq)
+    fout.close()
+
+def bWriteQualToFile(dQual, strToFile,iBasesPerLine = 60, strNewLine = '\n'):
+    fout = open(strToFile,'w')
+    for strSeqId,lQual in dQual.items():
+        fout.write('>' + strSeqId + strNewLine)
+        lBegin = 0
+        lEnd = iBasesPerLine
+        if lEnd > len(lQual): lEnd = len(lQual)
+        while lBegin < len(lQual):
+            fout.write(' '.join(lQual[lBegin:lEnd]) + strNewLine)
+            lBegin = lEnd
+            lEnd += iBasesPerLine
+            if lEnd > len(lQual): lEnd = len(lQual)
+    fout.close()
+
+def dGetSubSeqQual(dSeqQual,dRegion,iOffset = -1):
+    dSub = dict()
+    for strSeqId,lRegion in dRegion.items():
+        if strSeqId in dSeqQual:
+            iBegin = lRegion[0] + iOffset
+            iEnd = lRegion[1] 
+            dSub[strSeqId] = dSeqQual[strSeqId][iBegin:iEnd]
+    return dSub
+
+def dGetSubSeqFromFile(strSeqFile,dRegion,iOffset = -1, bToSeqId = 1): 
+    dSeq = dGetSeqFromFastFile(strSeqFile,bToSeqId)
+    return dGetSubSeqQual(dSeq,dRegion,iOffset)
+
+def dGetSubQualFromFile(strQualFile,dRegion,iOffset = -1, bToSeqId = 1):
+    dQual = dGetQualFromFastFile(strQualFile,bToSeqId)
+    return dGetSubSeqQual(dQual,dRegion,iOffset)
+
+def bWriteDLTable(dData,strToFile,lTitle = [],bKeyWrite = 0,strNewLine = '\n'):
+    fout = open(strToFile,'w')
+    if len(lTitle) > 0:
+        fout.write(','.join([str(i) for i in lTitle]) + strNewLine)
+    for k,lEle in dData.items():
+        if bKeyWrite:
+            lEle = [k] + lEle
+        fout.write(','.join([str(i) for i in lEle]) + strNewLine)
+    fout.close()

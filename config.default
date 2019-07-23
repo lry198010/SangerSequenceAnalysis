@@ -25,21 +25,40 @@
                      },
     "blastSuff"    : ".bln",
     "VectorScreen" : 1,
-    "MaxVectsKeep" : 20
+    "MaxVectsKeep" : 20,
+    "SaveTo"       : "QualityCheck.csv"
   },
   "Assembly": {
-    "Parcap3"    : "",
-    "SampleSeq"  : ".hq.fa",
-    "SampleQual" : ".hq.fa.qual",
-    "keepTmp"    : 0
+    "Parcap3"      : "",
+    "SampleSeq"    : ".hq.fa",
+    "SampleQual"   : ".hq.fa.qual",
+    "ConsFName"    : ".cap.cons",
+    "ContigAs"     : ".TXT",
+    "Report"       : "Assembly.csv",
+    "KeepSeq"      : 0,
+    "KeepQual"     : 0,
+    "KeepCons"     : 0,
+    "KeepAce"      : 0,
+    "KeepLinks"    : 0,
+    "KeepCQual"    : 0,
+    "KeepInfo"     : 0,
+    "KeepSinglets" : 0,
+    "keepTmp"      : 0
   },
+  "SampleIndex" : 1,
   "Stam"        : "all",
   "KeepTmp"     : 0,
   "tmp"         : "tmp",
   "AB1ListFile" : "all.ab1.list",
+  "KeepAB1list" : 0,
   "rawSeq"      : "all.fa",
+  "KeeprawSeq"  : 0,
   "rawQual"     : "all.fa.qual",
+  "KeeprawSeq"  : 0,
   "blastOut"    : "all.bln",
+  "Keepbln"     : 0,
   "HQSeq"       : "all.hq.fa",
-  "HQQual"      : "all.hq.fa.qual"
+  "KeepHQSeq"   : 0,
+  "HQQual"      : "all.hq.fa.qual",
+  "KeepHQQual"  : 0
 }

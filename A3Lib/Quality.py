@@ -4,7 +4,7 @@ strLibPath = os.path.split(strLibPath)[0]
 sys.path.append(strLibPath)
 import Utility
 
-def dQualityStat(lAB1Files,conf,strWorkDir):
+def dQualityStat(lAB1Files,conf,strWorkDir,dHRegion={}):
     strAB1ListFile = strWorkDir + '/' + conf['AB1ListFile']
     strRawSeq = strWorkDir + '/' + conf['rawSeq']
     strRawQual = strWorkDir + '/' + conf['rawQual']
@@ -22,7 +22,7 @@ def dQualityStat(lAB1Files,conf,strWorkDir):
         dCmbCover = dCleanCoverCombine([dLQCover,dVectorCover])
         dHQRegion = dGetMaxRegion(dCmbCover)
         dQVStat = dGetQVStat(dCmbCover)
-        
+
         for k,lBase in dCmbCover.items():
             lStat = [Utility.strGetAB1SampleName(k),k,len(lBase)]
             if k in dLQStat:
@@ -43,6 +43,18 @@ def dQualityStat(lAB1Files,conf,strWorkDir):
                 lStat += [-1,0]
             dStat[k] = lStat
 
+
+        if not conf['Qual']['VectorScreen']:
+            dHQRegion = dGetMaxRegion(dLQCover)
+        for strSeqId,lRegion in dHQRegion.items():
+            dHRegion[strSeqId] = lRegion
+
+    #strStatOutFile = strWorkDir + '/' + conf['Qual']['SaveTo']
+    #fout = open(strStatOutFile,'w')
+    #fout.write(','.join(['SampleName','SeqFile','rawLength','LowQualLen','LowQualLen%','HQRegion','LQRegion','VectLen','VectLen%','NVectRegion','VectRegion','LVLen','LVLen%','HRegion','PassRegionStart','passRegionEnd']) + '\r\n')
+    #for k,lBase in dStat.items():
+    #    fout.write(','.join([str(i) for i in lBase]) + '\r\n')
+    #fout.close()
     return dStat
 
 # dAb1File = {"sample":[filepath,filepath,...],...}

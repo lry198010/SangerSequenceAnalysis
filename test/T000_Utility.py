@@ -60,6 +60,19 @@ strASFile = strWorkDir + '/' + conf['Assembly']['Report']
 lASTitle = ['SampleName','AssemblyStat','ContigNum','ContigLen','ContigAB1','SingletNum','SingletAB1','ExcludeNum','ExcludeAB1','QCRemoveNum','QCRemomveAB1']
 AU.bWriteDLTable(dASStat,strASFile,lASTitle,0,'\r\n')
 
+dKeeps = {
+            'KeepAB1list' : 'all.ab1.list',
+            'KeeprawSeq'  : 'all.fa',
+            'KeeprawQual' : 'all.fa.qual',
+            'Keepbln'     : 'all.bln',
+            'KeepHQSeq'   : 'all.hq.fa',
+            'HQQual'      : 'all.hq.fa.qual',
+            'KeepHQQual'  : 'all.hq.fa.qual'
+        }
+for k,v in dKeeps.items():
+    strFile = strWorkDir + '/' + v
+    if not conf[k] and os.path.isfile(strFile):
+        os.remove(strFile)
 
 #dLQCover = dict()
 #dLQStat = AQ.dGetSeqQualStatByTtunerOut(strSeqFile,conf,strWorkDir,dLQCover)

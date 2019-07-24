@@ -10,7 +10,7 @@ def dQualityStat(lAB1Files,conf,strWorkDir,dHRegion={}):
     strRawQual = strWorkDir + '/' + conf['rawQual']
     lTtunerPar = [conf['ExternalProg']['ttuner'], '-sa', strRawSeq, '-qa', strRawQual,'-if', strAB1ListFile]
     iNumAB1File = 1
-    #iNumAB1File = Utility.iGetSeqQualFileByTtuner(lTtunerPar, lAB1Files, strAB1ListFile)
+    iNumAB1File = Utility.iGetSeqQualFileByTtuner(lTtunerPar, lAB1Files, strAB1ListFile)
     dStat = dict()
     if iNumAB1File > 0:
         #lHQStat = [Utility.strGetAB1SampleName(strSeqIdentity),strSeqIdentity,int(iSeqLen)]
@@ -133,6 +133,9 @@ def dGetSeqVectorStat(strSeqFile,conf,strWorkDir,dCleanCover={}):
                     dVectorRegion[strSeqId] = strRegion
                 else:
                     dVectorRegion[strSeqId] += ';' + strRegion
+            if not conf['Qual']['KeepBln']:
+                if os.path.isfile(strBlnFile): os.remove(strBlnFile)
+
 
     dVectorStat = dGetQVStat(dCleanCover) 
     for strSeqId in dVectorRegion.keys():

@@ -24,6 +24,7 @@
                        "Test1"       :  ""
                      },
     "blastSuff"    : ".bln",
+    "KeepBln"      : 0,
     "VectorScreen" : 1,
     "MaxVectsKeep" : 20,
     "SaveTo"       : "QualityCheck.csv"
@@ -54,7 +55,7 @@
   "rawSeq"      : "all.fa",
   "KeeprawSeq"  : 0,
   "rawQual"     : "all.fa.qual",
-  "KeeprawSeq"  : 0,
+  "KeeprawQual" : 0,
   "blastOut"    : "all.bln",
   "Keepbln"     : 0,
   "HQSeq"       : "all.hq.fa",

@@ -4,57 +4,48 @@ strLibPath = os.path.split(strLibPath)[0]
 sys.path.append(strLibPath)
 import Utility
 
-def dQualityStat(lAB1Files,conf,strWorkDir,dHRegion={}):
-    strAB1ListFile = strWorkDir + '/' + conf['AB1ListFile']
-    strRawSeq = strWorkDir + '/' + conf['rawSeq']
-    strRawQual = strWorkDir + '/' + conf['rawQual']
-    lTtunerPar = [conf['ExternalProg']['ttuner'], '-sa', strRawSeq, '-qa', strRawQual,'-if', strAB1ListFile]
-    iNumAB1File = 1
-    iNumAB1File = Utility.iGetSeqQualFileByTtuner(lTtunerPar, lAB1Files, strAB1ListFile)
+def dQualityStat(strSeqFileByTtuner,conf,strWorkDir,dHRegion={}):
     dStat = dict()
-    if iNumAB1File > 0:
-        #lHQStat = [Utility.strGetAB1SampleName(strSeqIdentity),strSeqIdentity,int(iSeqLen)]
-        dLQCover = dict()
-        dLQStat = dGetSeqQualStatByTtunerOut(strRawSeq,conf,strWorkDir,dLQCover)
-        dVectorCover = dict()
-        dVectorStat = dGetSeqVectorStat(strRawSeq,conf,strWorkDir,dVectorCover)
-        bRefineQVRegion(dVectorCover,conf)
-        dCmbCover = dCleanCoverCombine([dLQCover,dVectorCover])
-        dHQRegion = dGetMaxRegion(dCmbCover)
-        dQVStat = dGetQVStat(dCmbCover)
+    dLQCover = dict()
+    dLQStat = dGetSeqQualStatByTtunerOut(strSeqFileByTtuner,conf,strWorkDir,dLQCover)
+    dVectorCover = dict()
+    dVectorStat = dGetSeqVectorStat(strSeqFileByTtuner,conf,strWorkDir,dVectorCover)
+    bRefineQVRegion(dVectorCover,conf)
+    dCmbCover = dCleanCoverCombine([dLQCover,dVectorCover])
+    dHQRegion = dGetMaxRegion(dCmbCover)
+    dQVStat = dGetQVStat(dCmbCover)
 
-        for k,lBase in dCmbCover.items():
-            lStat = [Utility.strGetAB1SampleName(k),k,len(lBase)]
-            if k in dLQStat:
-                lStat += dLQStat[k]
-            else:
-                lStat += [0,0,'','']
-            if k in dVectorStat: 
-                lStat += dVectorStat[k]
-            else:
-                lStat += [0,0,'','']
-            if k in dQVStat: 
-                lStat += dQVStat[k]
-            else:
-                lStat += [0,0,'','']
-            if k in dHQRegion: 
-                lStat += dHQRegion[k]
-            else:
-                lStat += [-1,0]
-            dStat[k] = lStat
+    for k,lBase in dCmbCover.items():
+        lStat = [Utility.strGetAB1SampleName(k),k,len(lBase)]
+
+        if k in dLQStat:
+            lStat += dLQStat[k]
+        else:
+            lStat += [0,0,'','']
+
+        if k in dVectorStat: 
+            lStat += dVectorStat[k]
+        else:
+            lStat += [0,0,'','']
+
+        if k in dQVStat: 
+            lStat += dQVStat[k]
+        else:
+            lStat += [0,0,'','']
+
+        if k in dHQRegion: 
+            lStat += dHQRegion[k]
+        else:
+            lStat += [-1,0]
+
+        dStat[k] = lStat
 
 
-        if not conf['Qual']['VectorScreen']:
-            dHQRegion = dGetMaxRegion(dLQCover)
-        for strSeqId,lRegion in dHQRegion.items():
-            dHRegion[strSeqId] = lRegion
+    if not conf['Qual']['VectorScreen']:
+        dHQRegion = dGetMaxRegion(dLQCover)
+    for strSeqId,lRegion in dHQRegion.items():
+        dHRegion[strSeqId] = lRegion
 
-    #strStatOutFile = strWorkDir + '/' + conf['Qual']['SaveTo']
-    #fout = open(strStatOutFile,'w')
-    #fout.write(','.join(['SampleName','SeqFile','rawLength','LowQualLen','LowQualLen%','HQRegion','LQRegion','VectLen','VectLen%','NVectRegion','VectRegion','LVLen','LVLen%','HRegion','PassRegionStart','passRegionEnd']) + '\r\n')
-    #for k,lBase in dStat.items():
-    #    fout.write(','.join([str(i) for i in lBase]) + '\r\n')
-    #fout.close()
     return dStat
 
 # dAb1File = {"sample":[filepath,filepath,...],...}

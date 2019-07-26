@@ -33,7 +33,7 @@ def dCap3Assembly(dSeq,dQual,conf,strWorkDir,dSeqStat = {}):
             strSeqStam = strWorkDir + '/' + strSample + conf['Assembly']['SampleSeq']
             strSeqFile = strSeqStam
             strQualFile = strWorkDir + '/' + strSample + conf['Assembly']['SampleQual']
-            print(strSeqFile,strQualFile)
+            #print(strSeqFile,strQualFile)
             Utility.bWriteSeqToFile(dSampleSeq,strSeqFile,iBasesPerLine = 60,strNewLine = '\n')
             Utility.bWriteQualToFile(dSampleQual, strQualFile,iBasesPerLine = 60, strNewLine = '\n')
             lCap3Par = []
@@ -41,7 +41,7 @@ def dCap3Assembly(dSeq,dQual,conf,strWorkDir,dSeqStat = {}):
             lCap3Par.append(strSeqFile)
             strConsFName = '>' + strSeqFile + conf['Assembly']['ConsFName']
             lCap3Par.append(strConsFName)
-            print(' '.join(lCap3Par))
+            #print(' '.join(lCap3Par))
             Utility.dRunExternalProg(lCap3Par)
             strContigF = strSeqStam + '.cap.contigs'
             strContigToF = strWorkDir + '/' + strSample + conf['Assembly']['ContigAs']

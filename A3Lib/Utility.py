@@ -1,6 +1,21 @@
 import os,json,subprocess,fileinput
 
+
 AB1FileSuffix = ("ab1","AB1","Ab1","aB1")
+def dGetSetting(strSettingJson):
+    if not os.path.isfile(strSettingJson):return dict()
+    cff = open(strSettingJson,'r')
+    conf = json.load(cff)
+    cff.close()
+    return conf
+
+def lGetDirs(strWorkDir):
+    lDirs = []
+    with os.scandir(strWorkDir) as dfs:# Directories and files
+        for dirEntry in dfs:
+            if dirEntry.is_dir():lDirs.append(dirEntry.path)
+    return lDirs
+
 def lGetAB1Files(strWorkDir):
     lAB1Files = []
     with os.scandir(strWorkDir) as wkDirScan:
@@ -47,13 +62,6 @@ def iAB1PathList2File(lAB1Files, strToFileName):
         fout.close()
     return iNumAB1s
 
-
-def dGetSetting(strSettingJson):
-    cff = open(strSettingJson,'r')
-    conf = json.load(cff)
-    cff.close()
-    return conf
-
 def iGetSeqQualFileByTtuner(lProgPars, lAB1Files,strFileList2File):
     iNumFile = iAB1PathList2File(lAB1Files, strFileList2File)
     if iNumFile <= 0:
@@ -61,6 +69,12 @@ def iGetSeqQualFileByTtuner(lProgPars, lAB1Files,strFileList2File):
     else:
         subP = dRunExternalProg(lProgPars + [strFileList2File])
         return iNumFile
+
+def dBaseCallingByTtuner(lProgPars, lAB1Files,strSeqFile, strQualFile,strFileList2File):
+    lProgPars = lProgPars + ['-sa', strSeqFile,'-qa',strQualFile, '-if']
+    iNumFile = iGetSeqQualFileByTtuner(lProgPars,lAB1Files,strFileList2File) 
+    if iNumFile == 0: return dict()
+    return dGetSeqFromFastFile(strSeqFile,1)
 
 def dRunExternalProg(lProgPars):
     strRun = " ".join(lProgPars)

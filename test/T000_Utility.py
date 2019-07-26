@@ -19,19 +19,36 @@ print(strWorkDir)
 lAB1Files = AU.lGetAB1Files(strWorkDir)
 lAB1 = [os.path.split(i)[1] for i in lAB1Files]
 
-dRegion = dict()
-dQualStat = AQ.dQualityStat(lAB1Files,conf,strWorkDir,dRegion)
-for k,lStat in dRegion.items():
-    if dRegion[k][0] == -1: del dRegion[k]
-
+lProgPars = [conf['BaseCalling']['Program'],conf['BaseCalling']['Params']]
 strSeqFile = strWorkDir + '/' + conf['rawSeq']
 strQualFile = strWorkDir + '/' + conf['rawQual']
+strToList = strWorkDir + '/' + conf['AB1ListFile']
+
+dSeq = AU.dBaseCallingByTtuner(lProgPars,lAB1Files,strSeqFile,strQualFile,strToList)
+sAB1NoCalled = set(lAB1) - set(dSeq.keys())
+if len(sAB1NoCalled) > 0:
+    print('警告：有AB1文件不能转换为序列文件，' + ','.join(sAB1NoCalled))
+else:
+    print('完成：BaseCalling')
+
+dSample = AU.dGetAB1Sample(lAB1,".",1)
+
+print('开始：质量检测')
+dRegion = dict()
+dQualStat = AQ.dQualityStat(strSeqFile,conf,strWorkDir,dRegion)
+for k,lStat in dRegion.items():
+    if dRegion[k][0] == -1: del dRegion[k]
+print('完成：质量检测')
+
 dHQSeq = AU.dGetSubSeqFromFile(strSeqFile,dRegion,-1,1)
 dHQQual = AU.dGetSubQualFromFile(strQualFile,dRegion,-1,1)
 sQualRm = set(lAB1) - set(dHQSeq.keys())
-#print(len(dHQSeq),len(dHQQual))
+
+print('开始：序列拼接')
 dSeqASStat = dict()
 dASStat = AA.dCap3Assembly(dHQSeq,dHQQual,conf,strWorkDir,dSeqASStat)
+print('完成：序列拼接')
+
 dQualRm = dict()
 for strSeqId in sQualRm:
     dSeqASStat[strSeqId] = 'R'
@@ -56,10 +73,27 @@ for strSample in dASStat.keys():
     else:
         dASStat[strSample] += [0,''] 
 
+for strSample in dSample.keys():
+    if not strSample in dASStat:
+        dASStat[strSample] = [strSample,'N',0,0,'',0,'',0,'',0,'']
+    dASStat[strSample] += [len(dSample[strSample]), ';'.join(dSample[strSample])]
+
 strASFile = strWorkDir + '/' + conf['Assembly']['Report']
-lASTitle = ['SampleName','AssemblyStat','ContigNum','ContigLen','ContigAB1','SingletNum','SingletAB1','ExcludeNum','ExcludeAB1','QCRemoveNum','QCRemomveAB1']
+lASTitle = ['SampleName','AssemblyStat','ContigNum','ContigLen','ContigAB1','SingletNum','SingletAB1','ExcludeNum','ExcludeAB1','QCRemoveNum','QCRemomveAB1','NumAB1Files','AllAB1']
 AU.bWriteDLTable(dASStat,strASFile,lASTitle,0,'\r\n')
 
+iNumNAssembly = 0 # Number of sample cann't assembly
+iNumPAssembly = 0 # Number of sample patial assembly
+iNumAAssembly = 0 # Number of sample complete assembly
+
+for k,lv in dASStat.items():
+    if lv[1] == 'A': iNumAAssembly += 1
+    if lv[1] == 'P': iNumPAssembly += 1
+    if lv[1] == 'N': iNumNAssembly += 1
+
+print('完成：总样品数,',len(dSample),';总测序文件数,',len(lAB1),';完全拼接样品数，',iNumAAssembly,';部分拼接样品数，',iNumPAssembly,';没有拼接样品数，',iNumNAssembly)
+
+print('开始:清理临时文件')
 dKeeps = {
             'KeepAB1list' : 'all.ab1.list',
             'KeeprawSeq'  : 'all.fa',
@@ -73,22 +107,3 @@ for k,v in dKeeps.items():
     strFile = strWorkDir + '/' + v
     if not conf[k] and os.path.isfile(strFile):
         os.remove(strFile)
-
-#dLQCover = dict()
-#dLQStat = AQ.dGetSeqQualStatByTtunerOut(strSeqFile,conf,strWorkDir,dLQCover)
-#dVectorCover = dict()
-#dVectorStat = AQ.dGetSeqVectorStat(strSeqFile,conf,strWorkDir,dVectorCover)
-#AQ.bRefineQVRegion(dVectorCover,conf)
-#dCombinedCover = AQ.dCleanCoverCombine([dLQCover,dVectorCover])
-#dHQRegion = AQ.dGetMaxRegion(dCombinedCover,conf)
-#for k in dCombinedCover.keys():
-#    print(k)
-#    if k in dLQCover: print(dLQCover[k])
-#    if k in dVectorCover: print(dVectorCover[k])
-#    print(dCombinedCover[k])
-#    print(dHQRegion[k])
-
-#dLQStat = AQ.dGetSeqQualStatByTtunerOut(strSeqFile,conf,strWorkDir,dCleanCover)
-
-#for k,v in dLQStat.items():
-#    print(v + [k])

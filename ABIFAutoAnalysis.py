@@ -1,321 +1,146 @@
 #!/usr/bin/python3
-
-import os, sys, getopt, subprocess, fileinput
-# Get the script directory 
-strLibPath = os.path.split(sys.path.split(sys.argv[0]))[0] 
+import sys,os,getopt,json
+strLibPath = os.path.split(sys.argv[0])[0]
+strLibPath = os.path.abspath(strLibPath + "/../")
 sys.path.append(strLibPath)
+import A3Lib.Utility as AUtil
+import A3Lib.Quality as AQual
+import A3Lib.Assembly as AASS
 
-def getAb1Files(wkdir,ab1ListTo):
-    iNumFiles = 0
-    fin = open(ab1ListTo,"w")
-    with os.scandir(wkdir) as fi:
-        for dirEntry in fi:
-            if dirEntry.is_file() and dirEntry.path.endswith(("ab1","AB1","Ab1","aB1")):
-                fin.writelines([dirEntry.path,"\n"])
-                iNumFiles += 1
-    fin.close();
-    if iNumFiles<=0:
-        os.remove(fin)
-    return iNumFiles
+def prtUsage():
+    print('用法：',sys.argv[0],'-D <WorkDir> -V[VectorTrim] -F <confiFile> -M <runModel[0|1]>')
+    print('\trunModel[0|1]:0:just run in the give directory;1 run in the subdirectory in give Directory')
 
-def getAlignRegion(bln,dRegion):
-    if not os.path.exists(bln):
-        return
-    with fileinput.input(bln) as lines:
-        for line in lines:
-            fields = line.split("\t")
-            if not fields[0] in dRegion:
-                dRegion[fields[0]] = [0] * int(fields[1])
-            seqRegion = dRegion[fields[0]]
-            for i in range(int(fields[13]),int(fields[14])+1):
-                seqRegion[i-1] += 1
+strConfDef = 'config.default'
+strConfDef = os.path.split(os.path.abspath(__file__))[0] + '/' + strConfDef
 
-def getHighQualRegion(dRegion,nMaxVect):
-    nMaxVect += 1
-    res = dict()
-    for k,v in dRegion.items():
-        pos = -1
-        npos = 0
-        res[k] = [0,0]
-        for i in range(len(v)): 
-            if v[i] > 0:
-                if pos >=0:
-                    if res[k][1] < npos:
-                        res[k] = [pos,npos]
-                npos = 0
-                pos = -1
-            if v[i] == 0:
-                if pos == -1:
-                    pos = i
-                npos += 1
-        if pos >=0:
-            if res[k][1] < npos:
-                res[k] = [pos,npos]
-        npos = 0
-        for i in range(res[k][0] + res[k][1],len(v)):
-            npos += 1
-            if npos > nMaxVect:
-                break
-            if v[i] == 0:
-                res[k][1] += npos
-                npos = 0
-        if npos <= nMaxVect:
-            res[k][1] += npos
-        res[k][1] = res[k][0] + res[k][1] 
-        npos = 0
-        for i in range(res[k][0]-1,-1,-1):
-            npos += 1
-            if npos > nMaxVect:
-                break
-            if v[i] == 0:
-                res[k][0] = i
-                npos = 0
-        if npos <= nMaxVect:
-            res[k][0] = 0
-    return res
+dConfDef = AUtil.dGetSetting(strConfDef)
+opts,args = getopt.gnu_getopt(sys.argv[1:],'F:VD:M:h')
 
-def getFastSeq(sa):
-    res = dict()
-    seqN = ""
-    with fileinput.input(sa) as lines:
-        for line in lines:
-            line = line.strip()
-            if line.startswith(">"):
-                seqN = line
-                res[seqN] = ""
-            else:
-                res[seqN] += line
-    return res
+strConfF = '' 
+bVectorTrim = 0
+strInDir = os.getcwd()
+bSubDirModel = 0 # AutoModel, scan all sub directory and work in it 
+for opt in opts:
+    if opt[0] == '-h' : 
+        prtUsage()
+        sys.exit(0)
+    if opt[0] == '-V' : bVectorTrim = 1
+    if opt[0] == '-D' : strInDir = os.path.abspath(opt[1])
+    if opt[0] == '-M' : bSubDirModel = int(opt[1]) 
+    if opt[0] == '-F' : strConfF = opt[1]
 
-def getHighQualSeq(seqD,regionD):
-    res = dict()
-    for seqN,seq in seqD.items():
-        seqN = seqN.strip('>')
-        fields = seqN.split() 
-        #print(seqN)
-        #print(seq)
-        if len(fields) == 4:
-            sD = set(range(int(fields[2])-1, int(fields[2]) + int(fields[3])))
-            if fields[0] in regionD:
-                #print(regionD[fields[0]])
-                sD = sD & set(range(regionD[fields[0]][0],regionD[fields[0]][1]+1))
-            if len(sD) > 100:
-                minsD = min(list(sD)) + 1
-                maxsD = max(list(sD)) + 1
-                seqNN = " ".join([fields[0]," ", fields[1], " ",str(minsD)," ",str(maxsD)])
-                res[seqNN] = seq[minsD:maxsD+1]
-            else:
-                print("High Segement to short:" + seqN + ":" + str(len(sD)))
-    return res
+if not os.path.isdir(strInDir):
+    print('错误：目录不存在，' + strInDir)
+    prtUsage()
+    sys.exit(1)
 
-def getFastQual(qa): 
-    res = dict()
-    seqN = ""
-    with fileinput.input(qa) as lines:
-        for line in lines:
-            line = line.strip()
-            if line.startswith('>'):
-                seqN = line
-                #res[seqN] = []
-                res[seqN] = ""
-            else:
-                #res[seqN] = res[seqN] + line.split(" ")
-                res[seqN] += ' ' + line
-    return res
+print('Param:',sys.argv[0])
+print('\tWorkDir:',strInDir)
+print('\tVector Screen:',bVectorTrim)
+print('\tRun Model:',bSubDirModel)
+print('\tConfigure File:',strConfF)
 
-def getHighQualQual(qualD,regionD):
-    res = dict()
-    for seqN,qual in qualD.items():
-        seqN = seqN.strip('> ')
-        fields = seqN.split() 
-        if len(fields) == 4:
-            sD = set(range(int(fields[2])-1, int(fields[2]) + int(fields[3])))
-            if fields[0] in regionD:
-                #print(regionD[fields[0]])
-                sD = sD & set(range(regionD[fields[0]][0],regionD[fields[0]][1]+1))
-            if len(sD) > 100:
-                qual = qual.strip(' ')
-                quals = qual.split()
-                minsD = min(list(sD)) + 1 
-                maxsD = max(list(sD)) + 1
-                seqNN = " ".join([fields[0]," ", fields[1], " ",str(minsD)," ",str(maxsD)])
-                res[seqNN] = quals[minsD:maxsD+1]
-            else:
-                print("High Segement to short:" + seqN + ":" + str(len(sD)))
-    return res
+lDirs = [strInDir]
+if not bSubDirModel == 0: lDirs = AUtil.lGetDirs(strInDir)
+print('总计订目录(单数):',len(lDirs))
 
-def getSamples(seqHD,nameIndex):
-    res = dict()
-    for k in seqHD:
-        seqNs = k.split(".")
-        if not seqNs[nameIndex] in res:
-            res[seqNs[nameIndex]] = []
-        res[seqNs[nameIndex]].append(k)
-    return res
+conf = dConfDef
 
-def printSeq(seqN,seq,fTo,nBPerLine,newline):
-    fTo.write(seqN + newline)
-    lBegin = 0
-    lEnd = nBPerLine
-    while lBegin < len(seq):
-        fTo.write(seq[lBegin:lEnd] + newline)
-        lBegin = lEnd
-        lEnd += nBPerLine
-        if lEnd > len(seq):
-            lEnd = len(seq)
+if bVectorTrim == 1:
+    conf['Qual']['VectorScreen'] = bVectorTrim
+for strWorkDir in lDirs:
+    print('  开始分析目录(订单):',strWorkDir)
+    
+    lAB1Files = AUtil.lGetAB1Files(strWorkDir)
+    lAB1 = [os.path.split(i)[1] for i in lAB1Files]
 
-def printQual(seqN,qual,fTo,nBPerLine):
-    fTo.write(seqN + "\n")
-    lBegin = 0
-    lEnd = nBPerLine
-    while lBegin < len(qual):
-        fTo.write(" ".join(qual[lBegin:lEnd]) + "\n")
-        lBegin = lEnd
-        lEnd += nBPerLine
-        if lEnd > len(qual):
-            lEnd = len(qual)
+    lProgPars = [conf['BaseCalling']['Program'],conf['BaseCalling']['Params']]
+    strSeqFile = strWorkDir + '/' + conf['rawSeq']
+    strQualFile = strWorkDir + '/' + conf['rawQual']
+    strToList = strWorkDir + '/' + conf['AB1ListFile']
 
-def renameContig(seqContigF,toSampleF,toSampleN):
-    seqs = getFastSeq(seqContigF)
-    seqLen = []
-    if len(seqs)>0:
-        fTo = open(toSampleF,"w")
-        i = 0
-        for k,v in seqs.items():
-            k = toSampleN
-            seqLen.append(str(len(v)))
-            if i > 0:
-                k = k + str(i)
-            printSeq(">" + k,v,fTo,60,"\r\n")
-        fTo.close()
-    os.remove(seqContigF)
-    return ":".join(seqLen)
+    dSeq = AUtil.dBaseCallingByTtuner(lProgPars,lAB1Files,strSeqFile,strQualFile,strToList)
+    sAB1NoCalled = set(lAB1) - set(dSeq.keys())
+    if len(sAB1NoCalled) > 0:
+        print('    警告：有AB1文件不能转换为序列文件，' + ','.join(sAB1NoCalled))
+    else:
+        print('    完成：BaseCalling')
 
-def rmTmp(fpath):
-    if os.path.isfile(fpath):
-        os.remove(fpath)
+    dSample = AUtil.dGetAB1Sample(lAB1,".",1)
 
-bKeepTmp = 0
-nMaxVect = 20 # max length of sequence match vector that not screen
-nameIndex = 1
+    print('    开始：质量检测')
+    dRegion = dict()
+    dQualStat = AQual.dQualityStat(strSeqFile,conf,strWorkDir,dRegion)
+    for k,lStat in dRegion.items():
+        if dRegion[k][0] == -1: del dRegion[k]
+    print('    完成：质量检测')
 
-ttuner = "/home/tyhy/biosoft/tracetuner_3.0.6beta/rel/Linux_64/ttuner"
-blastn = '/home/tyhy/biosoft/ncbi-blast-2.9.0+/bin/blastn -db /home/tyhy/biosoft/Vector/UniVec -task blastn -reward 1 -penalty -5 -gapopen 3 -gapextend 3 -dust yes -soft_masking true -evalue 700 -searchsp 1750000000000 -max_target_seqs 20 -outfmt "6 qaccver qlen saccver slen length evalue score bitscore nident pident mismatch gapopen gaps qstart qend sstart send qseq sseq"'
-cap3 = "/home/tyhy/biosoft/CAP3/cap3"
+    dHQSeq = AUtil.dGetSubSeqFromFile(strSeqFile,dRegion,-1,1)
+    dHQQual = AUtil.dGetSubQualFromFile(strQualFile,dRegion,-1,1)
+    sQualRm = set(lAB1) - set(dHQSeq.keys())
 
-ab1List = "allab1.list"
-sa = "all.seq"
-qa = "all.qual"
-bln = "all.bln"
-sah = ".hq"
-qah = ".hq.qual"
-c3 = "cap3"
+    print('    开始：序列拼接')
+    dSeqASStat = dict()
+    dASStat = AASS.dCap3Assembly(dHQSeq,dHQQual,conf,strWorkDir,dSeqASStat)
+    print('    完成：序列拼接')
 
-wkdir = os.getcwd();
+    dQualRm = dict()
+    for strSeqId in sQualRm:
+        dSeqASStat[strSeqId] = 'R'
+        strSample = AUtil.strGetAB1SampleName(strSeqId,'.',1)
+        if not strSample in dQualRm:
+            dQualRm[strSample] = []
+        dQualRm[strSample].append(strSeqId)
 
-# Output he parameter used in the analysis
-print(" ".join([sys.argv[0],"-wd",wkdir,"-if",ab1List,"-sa",sa,"-qa",qa,"-bl",bln,"-c3",c3]));
-
-# To get the Analysis AB1 File
-iNumFiles = getAb1Files(wkdir,ab1List)
-
-# If there are any ab1 files run!
-if iNumFiles > 0:
-    print("Now, call ttuner to basecalling......")
-    subP = subprocess.run(" ".join([ttuner,"-sa", sa,"-qa",qa,"-if",ab1List]),shell=True )
-
-    print("Call blastn search for vectors.......");
-    subP = subprocess.run(" ".join([blastn,"-query",sa,"-out",bln]),shell=True)
-
-    print("Quality screen......")
-
-    print("\tGet Vector Blast region......")
-    dRegion = {}
-    getAlignRegion(bln,dRegion)
-    #print(dRegion)
-
-    print("\tGet High Qualit Region......")
-    highD = getHighQualRegion(dRegion,nMaxVect)
-    #print(highD)
-
-    print("\tRead Sequnec from fasta File......")
-    seqD = getFastSeq(sa)
-    #print(seqD)
-
-    print("\tGet High Quality sequence......")
-    seqHD = getHighQualSeq(seqD,highD)
-    #print(len(seqHD))
-
-    print("\tRead Quality from Quality File......")
-    qualD = getFastQual(qa)
-    #print(qualD)
-
-    print("\tGet High Quality Qual......")
-    qualHD = getHighQualQual(qualD,highD)
-    #print(len(qualHD)) 
-
-    # Get name of samples
-    samples = getSamples(seqHD,nameIndex)
-    print("Total samples:", len(samples))
-
-    reportF = open("Assembly_report.csv","w")
-    reportF.write("Sample,NumberOfSeq,Status,seqLength(bps),Assemblied,singlets" + "\n")
-    iprocess = 0
-    for k,v in samples.items():
-        print("\t\tProcess sample(",len(v),"):",k,":")
-        print("\n".join(["\t\t\t" + m for m in v]))
-        seqSamples =  set([s.split()[0] for s in v])
-        #print(seqSamples)
-        strReport = [k, str(len(v))]
-        seqFName = k + sah
-        qualFName = k + qah
-        conFName = ">" + k + sah + ".cap.consences"
-        seqFto = open(seqFName,"w")
-        qualFto = open(qualFName,"w")
-        iNumSeq = 0
-        for seqfaqual in v:
-            if len(seqHD[seqfaqual]) > 0 :
-                iNumSeq += 1
-                printSeq(">" + seqfaqual, seqHD[seqfaqual],seqFto,60,"\n")
-                printQual(">" + seqfaqual, qualHD[seqfaqual],qualFto,30)
-            else:
-                print("\t\tEmpty Sequence:" + seqfaqual)
-        seqFto.close()
-        qualFto.close()
-        if iNumSeq > 0:
-            subP = subprocess.run(" ".join([cap3, seqFName, conFName]),shell=True )
-            strSinglets = set([aSeq.strip(">").split()[0] for aSeq in getFastSeq(seqFName + ".cap.singlets").keys()])
-            strAssemblied = seqSamples - strSinglets
-            if len(strSinglets) > 0:
-                strReport.append("N")
-            else:
-                strReport.append("Y")
-            strContigLen = renameContig(seqFName + ".cap.contigs",k + ".TXT",k)
-            strReport.append(strContigLen)
-            strReport.append(":".join(strAssemblied))
-            strReport.append(":".join(strSinglets))
-            if not bKeepTmp:
-                for s in [".cap.consences",".cap.ace",".cap.contigs.links",".cap.contigs.qual",".cap.info",".cap.singlets",".qual",""]:
-                    rmTmp(k + sah + s)
+    for strSeqId in dQualStat.keys():
+        if strSeqId in dSeqASStat:
+            dQualStat[strSeqId].append(dSeqASStat[strSeqId])
         else:
-            strReport.append("N") 
-            strReport.append("0") 
-            strReport.append("") 
-            strReport.append(":".join([m.split()[0] for m in v])) 
+            dQualStat[strSeqId].append('M')
 
-        reportF.write(",".join(strReport) + "\n")
+    strQCFile = strWorkDir + '/' + conf['Qual']['SaveTo']
+    lQCTitle = ['SampleName','SeqFile','rawLength','LowQualLen','LowQualLen%','HQRegion','LQRegion','VectLen','VectLen%','NVectRegion','VectRegion','LVLen','LVLen%','HRegion','PassRe    gionStart','passRegionEnd','Stat[M/R/E/S/A]']
+    AUtil.bWriteDLTable(dQualStat,strQCFile,lQCTitle,0,'\r\n')
 
-        iprocess += 1
-        if iprocess > 1000:
-            break
+    for strSample in dASStat.keys():
+        if strSample in dQualRm:
+            dASStat[strSample] += [len(dQualRm[strSample]),';'.join(dQualRm[strSample])]
+        else:
+            dASStat[strSample] += [0,''] 
 
-    reportF.close()
+    for strSample in dSample.keys():
+        if not strSample in dASStat:
+            dASStat[strSample] = [strSample,'N',0,0,'',0,'',0,'',0,'']
+        dASStat[strSample] += [len(dSample[strSample]), ';'.join(dSample[strSample])]
 
-    if not bKeepTmp:
-        rmTmp(ab1List)
-        rmTmp(sa)
-        rmTmp(qa)
-        rmTmp(bln)
+    strASFile = strWorkDir + '/' + conf['Assembly']['Report']
+    lASTitle = ['SampleName','AssemblyStat','ContigNum','ContigLen','ContigAB1','SingletNum','SingletAB1','ExcludeNum','ExcludeAB1','QCRemoveNum','QCRemomveAB1','NumAB1Files','AllAB1']
+    AUtil.bWriteDLTable(dASStat,strASFile,lASTitle,0,'\r\n')
 
-    print("End of Analysis")
+    iNumNAssembly = 0 # Number of sample cann't assembly
+    iNumPAssembly = 0 # Number of sample patial assembly
+    iNumAAssembly = 0 # Number of sample complete assembly
+
+    for k,lv in dASStat.items():
+        if lv[1] == 'A': iNumAAssembly += 1
+        if lv[1] == 'P': iNumPAssembly += 1
+        if lv[1] == 'N': iNumNAssembly += 1
+
+    print('完成：总样品数,',len(dSample),';总测序文件数,',len(lAB1),';完全拼接样品数，',iNumAAssembly,';部分拼接样品数，',iNumPAssembly,';没有拼接样品数，',iNumNAssembly)
+
+    print('开始:清理临时文件')
+    dKeeps = {
+            'KeepAB1list' : 'all.ab1.list',
+            'KeeprawSeq'  : 'all.fa',
+            'KeeprawQual' : 'all.fa.qual',
+            'Keepbln'     : 'all.bln',
+            'KeepHQSeq'   : 'all.hq.fa',
+            'HQQual'      : 'all.hq.fa.qual',
+            'KeepHQQual'  : 'all.hq.fa.qual'
+            }
+    for k,v in dKeeps.items():
+        strFile = strWorkDir + '/' + v
+        if not conf[k] and os.path.isfile(strFile):
+            os.remove(strFile)
 

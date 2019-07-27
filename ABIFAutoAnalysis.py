@@ -76,8 +76,11 @@ for strWorkDir in lDirs:
     print('    开始：质量检测')
     dRegion = dict()
     dQualStat = AQual.dQualityStat(strSeqFile,conf,strWorkDir,dRegion)
+    lEmptyHQ = []
     for k in dRegion.keys():
-        if dRegion[k][0] == -1: del dRegion[k]
+        if dRegion[k][0] == -1: lEmptyHQ.append(k)
+    for k in lEmptyHQ:
+        del dRegion[k]
     print('    完成：质量检测')
 
     dHQSeq = AUtil.dGetSubSeqFromFile(strSeqFile,dRegion,-1,1)

@@ -76,7 +76,7 @@ for strWorkDir in lDirs:
     print('    开始：质量检测')
     dRegion = dict()
     dQualStat = AQual.dQualityStat(strSeqFile,conf,strWorkDir,dRegion)
-    for k,lStat in dRegion.items():
+    for k in dRegion.keys():
         if dRegion[k][0] == -1: del dRegion[k]
     print('    完成：质量检测')
 

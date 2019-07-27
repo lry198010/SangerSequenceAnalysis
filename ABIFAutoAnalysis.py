@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-import sys,os,getopt,json
+import sys,os,getopt,json,random
 strLibPath = os.path.split(sys.argv[0])[0]
 strLibPath = os.path.abspath(strLibPath + "/../")
 sys.path.append(strLibPath)
@@ -57,6 +57,7 @@ for strWorkDir in lDirs:
         continue
     
     lAB1Files = AUtil.lGetAB1Files(strWorkDir)
+    random.shuffle(lAB1Files)
     lAB1 = [os.path.split(i)[1] for i in lAB1Files]
 
     lProgPars = [conf['BaseCalling']['Program'],conf['BaseCalling']['Params']]

@@ -127,7 +127,7 @@ for strWorkDir in lDirs:
     iNumAAssembly = 0 # Number of sample complete assembly
 
     for k,lv in dASStat.items():
-        if lv[1] == 'A': iNumAAssembly += 1
+        if lv[1] == 'Y': iNumAAssembly += 1
         if lv[1] == 'P': iNumPAssembly += 1
         if lv[1] == 'N': iNumNAssembly += 1
 

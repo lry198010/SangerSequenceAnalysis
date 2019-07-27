@@ -49,8 +49,12 @@ conf = dConfDef
 
 if bVectorTrim == 1:
     conf['Qual']['VectorScreen'] = bVectorTrim
+
 for strWorkDir in lDirs:
     print('  开始分析目录(订单):',strWorkDir)
+    if AUtil.bIsDirAnalysis(strWorkDir,conf):
+        print('    目录分析过，不执行分析！')
+        continue
     
     lAB1Files = AUtil.lGetAB1Files(strWorkDir)
     lAB1 = [os.path.split(i)[1] for i in lAB1Files]

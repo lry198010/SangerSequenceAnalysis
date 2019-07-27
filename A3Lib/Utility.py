@@ -173,3 +173,28 @@ def bWriteDLTable(dData,strToFile,lTitle = [],bKeyWrite = 0,strNewLine = '\n'):
             lEle = [k] + lEle
         fout.write(','.join([str(i) for i in lEle]) + strNewLine)
     fout.close()
+
+def sGetInforFromQualReport(strQualReport,iOnCol = 1,strSplit = ','):
+    sReps = set()
+    if os.path.isfile(strQualReport):
+        with fileinput.input(strQualReport) as lines:
+            for line in lines:
+                line = line.strip()
+                lFields = line.split(',')
+                sReps.add(lFields[iOnCol])
+    sReps.remove('SeqFile')
+    return sReps
+
+def bIsDirAnalysis(strWorkDir,conf):
+    strQualReport = strWorkDir + '/' + conf['Qual']['SaveTo']
+    if os.path.isfile(strQualReport):
+        sAB1Report = sGetInforFromQualReport(strQualReport,1)
+    else:
+        return 0
+
+    lAB1Files = lGetAB1Files(strWorkDir)
+    sAB1s = set([os.path.split(i)[1] for i in lAB1Files])
+
+    if len(sAB1Report) != len(sAB1s) : return 0
+    if len(sAB1Report - sAB1s) != 0  : return 0
+    return 1

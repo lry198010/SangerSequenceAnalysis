@@ -3,8 +3,6 @@ import sys,os,getopt,json
 strLibPath = os.path.split(sys.argv[0])[0]
 strLibPath = os.path.abspath(strLibPath + "/../")
 sys.path.append(strLibPath)
-
-from A3Lib import *
 import A3Lib.Utility as AU
 import A3Lib.Quality as AQ
 import A3Lib.Assembly as AA
@@ -19,13 +17,17 @@ print(strWorkDir)
 lAB1Files = AU.lGetAB1Files(strWorkDir)
 lAB1 = [os.path.split(i)[1] for i in lAB1Files]
 
-lProgPars = [conf['BaseCalling']['Program'],conf['BaseCalling']['Params']]
+lTtunerPars = [conf['BaseCalling']['Program'],conf['BaseCalling']['Params']]
+strSeqSuff = conf['BaseCalling']['SeqSuff']
+strQualSuff = conf['BaseCalling']['QualSuff']
 strSeqFile = strWorkDir + '/' + conf['rawSeq']
 strQualFile = strWorkDir + '/' + conf['rawQual']
 strToList = strWorkDir + '/' + conf['AB1ListFile']
 
-dSeq = AU.dBaseCallingByTtuner(lProgPars,lAB1Files,strSeqFile,strQualFile,strToList)
-sAB1NoCalled = set(lAB1) - set(dSeq.keys())
+#dSeq = AU.dBaseCallingByTtuner(lTtunerPars,lAB1Files,strSeqFile,strQualFile,strToList)
+#sAB1NoCalled = set(lAB1) - set(dSeq.keys())
+
+dSeq,dQual,sAB1NoCalled = AU.dBaseCallingByTtunerPerAB1(lTtunerPars,lAB1Files,strSeqSuff,strQualSuff,0,0)
 if len(sAB1NoCalled) > 0:
     print('警告：有AB1文件不能转换为序列文件，' + ','.join(sAB1NoCalled))
 else:

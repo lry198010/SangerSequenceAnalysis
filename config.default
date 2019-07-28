@@ -11,7 +11,9 @@
   },
   "BaseCalling":{
     "Program"  : "/home/lry/soft/tracetuner_3.0.6beta/rel/Linux_64/ttuner",
-    "Params"   : "-trim_threshold 20"
+    "Params"   : "-trim_threshold 20",
+    "SeqSuff"  : ".seq",
+    "QualSuff" : ".qual"
   },
   "Qual" : {
     "Parttuner"    : "-trim_threshold 20",

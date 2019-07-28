@@ -57,20 +57,30 @@ for strWorkDir in lDirs:
         continue
     
     lAB1Files = AUtil.lGetAB1Files(strWorkDir)
+    if len(lAB1Files) == 0: continue
+
     random.shuffle(lAB1Files)
     lAB1 = [os.path.split(i)[1] for i in lAB1Files]
 
     lProgPars = [conf['BaseCalling']['Program'],conf['BaseCalling']['Params']]
+    strSeqSuff = conf['BaseCalling']['SeqSuff']
+    strQualSuff = conf['BaseCalling']['QualSuff']
     strSeqFile = strWorkDir + '/' + conf['rawSeq']
     strQualFile = strWorkDir + '/' + conf['rawQual']
     strToList = strWorkDir + '/' + conf['AB1ListFile']
 
-    dSeq = AUtil.dBaseCallingByTtuner(lProgPars,lAB1Files,strSeqFile,strQualFile,strToList)
-    sAB1NoCalled = set(lAB1) - set(dSeq.keys())
+    #dSeq = AUtil.dBaseCallingByTtuner(lProgPars,lAB1Files,strSeqFile,strQualFile,strToList)
+    #sAB1NoCalled = set(lAB1) - set(dSeq.keys())
+    dSeq,dQual,sAB1NoCalled = AUtil.dBaseCallingByTtunerPerAB1(lProgPars,lAB1Files,strSeqSuff,strQualSuff,0,0)
     if len(sAB1NoCalled) > 0:
         print('    警告：有AB1文件不能转换为序列文件，' + ','.join(sAB1NoCalled))
     else:
         print('    完成：BaseCalling')
+
+    if len(dSeq) == 0:continue
+
+    AUtil.bWriteSeqToFile(dSeq,strSeqFile)
+    AUtil.bWriteQualToFile(dQual,strQualFile)
 
     dSample = AUtil.dGetAB1Sample(lAB1,".",1)
 

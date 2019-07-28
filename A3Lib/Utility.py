@@ -76,6 +76,38 @@ def dBaseCallingByTtuner(lProgPars, lAB1Files,strSeqFile, strQualFile,strFileLis
     if iNumFile == 0: return dict()
     return dGetSeqFromFastFile(strSeqFile,1)
 
+def dBaseCallingByTtunerDir(lProgPars, strDir,strSeqFile, strQualFile):
+    lProgPars = lProgPars + ['-sa', strSeqFile,'-qa',strQualFile, '-id',strDir]
+    return(dRunExternalProg(lProgPars)) 
+    #return dGetSeqFromFastFile(strSeqFile,1)
+
+def dBaseCallingByTtunerPerAB1(lProgPars,lAB1Files,strSeqSuff, strQualSuff,bKeep = 1,bToSeqId = 0,strToDir='/dev/shm'):
+    dSeq = dict()
+    dQual = dict()
+    lCallFail = []
+    for strAB1 in lAB1Files:
+        if not os.path.isfile(strAB1): continue
+        strFileDir,strFileStam = os.path.split(strAB1)
+        if not os.path.isdir(strToDir): strToDir = strFileDir
+        strSeqFile = strToDir + '/' + strFileStam + strSeqSuff
+        strQualFile = strToDir + '/' + strFileStam + strQualSuff
+        lParams = lProgPars + ['-sa', strSeqFile,'-qa',strQualFile, strAB1] 
+        subP = dRunExternalProg(lParams)
+        if subP.returncode == 0:
+            dTmpSeq = dGetSeqFromFastFile(strSeqFile,bToSeqId)
+            dTmpQual = dGetQualFromFastFile(strQualFile,bToSeqId)
+            for strSeqId,strSeq in dTmpSeq.items():
+                if not strSeqId in dSeq: dSeq[strSeqId] = strSeq
+
+            for strSeqId,lQual in dTmpQual.items():
+                if not strSeqId in dQual: dQual[strSeqId] = lQual
+            if not bKeep:
+                if os.path.isfile(strSeqFile): os.remove(strSeqFile)
+                if os.path.isfile(strQualFile): os.remove(strQualFile)
+        else:
+            lCallFail.append(strAB1)
+    return (dSeq,dQual,lCallFail)
+
 def dRunExternalProg(lProgPars):
     strRun = " ".join(lProgPars)
     subP = subprocess.run(" ".join(lProgPars),shell = True)

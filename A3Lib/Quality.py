@@ -110,7 +110,7 @@ def dGetSeqVectorStat(strSeqFile,conf,strWorkDir,dCleanCover={}):
     for VectorName,VectorSeq in conf['Qual']['Vector'].items():
         if os.path.isfile(VectorSeq):
             strBlastOut = strStam + VectorName + strBlastSuff
-            print("Run blastn:" + strBlastOut)
+            #print("Run blastn:" + strBlastOut)
             Utility.dRunExternalProg(lBlast + ['-subject',VectorSeq,'-out', strBlastOut])
             dBlnFiles.append(strBlastOut)
 

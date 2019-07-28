@@ -162,3 +162,4 @@ for strWorkDir in lDirs:
         if not conf[k] and os.path.isfile(strFile):
             os.remove(strFile)
 
+    print('完成:清理临时文件')

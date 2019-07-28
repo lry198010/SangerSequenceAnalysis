@@ -19,7 +19,7 @@ def dCap3Assembly(dSeq,dQual,conf,strWorkDir,dSeqStat = {}):
     dAssemblyStat = dict()
     strReportF = strWorkDir + '/' + conf['Assembly']['Report']
     for strSample,lSeqs in dSamples.items():
-        print('      开始拼接样品：',strSample)
+        print('      开始样品拼接：',strSample,' 测序文件数：',len(lSeqs))
         dSampleSeq = dict()
         dSampleQual = dict()
         lReport = [strSample]

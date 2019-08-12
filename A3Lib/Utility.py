@@ -1,6 +1,6 @@
 import os,json,subprocess,fileinput
 
-
+DateDirSep = '-'
 AB1FileSuffix = ("ab1","AB1","Ab1","aB1")
 def dGetSetting(strSettingJson):
     if not os.path.isfile(strSettingJson):return dict()
@@ -9,12 +9,42 @@ def dGetSetting(strSettingJson):
     cff.close()
     return conf
 
+# strDir: YYYY-M-D
+# return: YYYYMMDD
+def strDateDir(strDir):
+    strDir = os.path.basename(strDir)
+    lYMT = strDir.split(DateDirSep)
+    if len(lYMT) != 3: return ''
+    strY = lYMT[0]
+    strM = lYMT[1]
+    strD = lYMT[2]
+    if not strY.isdigit(): return ''
+    if len(strY) != 4: return '' 
+    if not strM.isdigit(): return ''
+    if len(strM) > 2: return ''
+    if int(strM) > 12: return ''
+    if len(strM) == 1: strM = '0' + strM
+    if not strD.isdigit(): return ''
+    if len(strD) > 2: return ''
+    if int(strD) > 31: return ''
+    if len(strD) == 1: strD = '0' + strD
+    return strY + strM + strD 
+
+
 def lGetDirs(strWorkDir):
     lDirs = []
     with os.scandir(strWorkDir) as dfs:# Directories and files
         for dirEntry in dfs:
             if dirEntry.is_dir():lDirs.append(dirEntry.path)
     return lDirs
+
+def dGetDateDirs(strWorkDir):
+    lAllDirs = lGetDirs(strWorkDir)
+    dDateDir = dict()
+    for lDir in lAllDirs:
+        strDir = strDateDir(lDir)
+        if strDir : dDateDir[strDir] = lDir
+    return dDateDir
 
 def lGetAB1Files(strWorkDir):
     lAB1Files = []

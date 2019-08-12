@@ -8,27 +8,36 @@ import A3Lib.Quality as AQual
 import A3Lib.Assembly as AASS
 
 def prtUsage():
-    print('用法：',sys.argv[0],'-D <WorkDir> -V[VectorTrim] -F <confiFile> -M <runModel[0|1]>')
-    print('\trunModel[0|1]:0:just run in the give directory;1 run in the subdirectory in give Directory')
+    print('用法：',sys.argv[0],'-D <WorkDir> -h')
+
+opts,args = getopt.gnu_getopt(sys.argv[1:],'D:h')
+strInDir = ''
+for opt in opts:
+    if opt[0] == '-h' : 
+        prtUsage()
+        sys.exit(0)
+    if opt[0] == '-D' : strInDir = os.path.abspath(opt[1])
+
+dDateDir = list()
+if os.path.isdir(strInDir):
+    dDateDir = AUtil.dGetDateDirs(strInDir)
+else:
+    print('not dir:',strInDir)
+
+print(dDateDir)
 
 strConfDef = 'config.default'
 strConfDef = os.path.split(os.path.abspath(__file__))[0] + '/' + strConfDef
 
 dConfDef = AUtil.dGetSetting(strConfDef)
-opts,args = getopt.gnu_getopt(sys.argv[1:],'F:VD:M:h')
-
 strConfF = '' 
 bVectorTrim = 0
+
+sys.exit(0)
+
+
 strInDir = os.getcwd()
 bSubDirModel = 0 # AutoModel, scan all sub directory and work in it 
-for opt in opts:
-    if opt[0] == '-h' : 
-        prtUsage()
-        sys.exit(0)
-    if opt[0] == '-V' : bVectorTrim = 1
-    if opt[0] == '-D' : strInDir = os.path.abspath(opt[1])
-    if opt[0] == '-M' : bSubDirModel = int(opt[1]) 
-    if opt[0] == '-F' : strConfF = opt[1]
 
 if not os.path.isdir(strInDir):
     print('错误：目录不存在，' + strInDir)

@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-import sys,os,getopt,json,random
+import sys,os,getopt,json,random,time
 strLibPath = os.path.split(sys.argv[0])[0]
 strLibPath = os.path.abspath(strLibPath + "/../")
 sys.path.append(strLibPath)
@@ -8,65 +8,72 @@ import A3Lib.Quality as AQual
 import A3Lib.Assembly as AASS
 
 def prtUsage():
-    print('用法：',sys.argv[0],'-D <WorkDir> -h')
+    print('用法：',sys.argv[0],'-D <WorkDir> -V[VectorTrim,0:no|1:yes] -F [configureFile] -N [NumSubDirsToAssembly,5]  -h')
 
-opts,args = getopt.gnu_getopt(sys.argv[1:],'D:h')
 strInDir = ''
+strConfF = '' 
+bVectorTrim = 0
+iNumSubDirs = 5
+
+print('测序文件拼接开始：',time.strftime('%Y-%m-%d %H:%M:%S',time.localtime()))
+opts,args = getopt.gnu_getopt(sys.argv[1:],'F:D:VN:h')
 for opt in opts:
     if opt[0] == '-h' : 
         prtUsage()
         sys.exit(0)
     if opt[0] == '-D' : strInDir = os.path.abspath(opt[1])
+    if opt[0] == '-V' : bVectorTrim = 1
+    if opt[0] == '-F' : strConfF = opt[1]
+    if opt[0] == '-N' : 
+        if opt[1].isdigit() and int(opt[1]) > 0 : iNumSubDirs = int(opt[1])
+
+print('\tParam:',sys.argv[0])
+print('\t\tWorkDir:',strInDir)
+print('\t\tVector Screen:',bVectorTrim)
+print('\t\tConfigure File:',strConfF)
+print('\t\tNumber of SubDirs to Assembly:',iNumSubDirs)
 
 dDateDir = list()
 if os.path.isdir(strInDir):
     dDateDir = AUtil.dGetDateDirs(strInDir)
 else:
-    print('not dir:',strInDir)
+    print('错误：目录不存在，' + strInDir)
+    prtUsage()
+    sys.exit(1)
 
-print(dDateDir)
+if len(dDateDir) == 0: 
+    print('\t没有待分析目录')
+    print('测序文件拼接结束：',time.strftime('%Y-%m-%d %H:%M:%S',time.localtime()))
+    exit(0)
+
+lDateDirAnalysis = sorted(dDateDir.keys(),reverse=True)[:iNumSubDirs]
+print('\t待拼接日期:',len(lDateDirAnalysis))
+lDirs = []
+for strDate in lDateDirAnalysis:
+    print('\t\t',strDate,':',dDateDir[strDate])
+    lDirs += AUtil.lGetDirs(dDateDir[strDate]) 
+
+print('\t总共分析订单数:',len(lDirs))
 
 strConfDef = 'config.default'
 strConfDef = os.path.split(os.path.abspath(__file__))[0] + '/' + strConfDef
 
 dConfDef = AUtil.dGetSetting(strConfDef)
-strConfF = '' 
-bVectorTrim = 0
-
-sys.exit(0)
-
-
-strInDir = os.getcwd()
-bSubDirModel = 0 # AutoModel, scan all sub directory and work in it 
-
-if not os.path.isdir(strInDir):
-    print('错误：目录不存在，' + strInDir)
-    prtUsage()
-    sys.exit(1)
-
-print('Param:',sys.argv[0])
-print('\tWorkDir:',strInDir)
-print('\tVector Screen:',bVectorTrim)
-print('\tRun Model:',bSubDirModel)
-print('\tConfigure File:',strConfF)
-
-lDirs = [strInDir]
-if not bSubDirModel == 0: lDirs = AUtil.lGetDirs(strInDir)
-print('总计订目录(单数):',len(lDirs))
 
 conf = dConfDef
-
 if bVectorTrim == 1:
     conf['Qual']['VectorScreen'] = bVectorTrim
 
 for strWorkDir in lDirs:
-    print('  开始分析目录(订单):',strWorkDir)
+    print('\t\t开始分析目录(订单):',strWorkDir)
     if AUtil.bIsDirAnalysis(strWorkDir,conf):
-        print('    目录分析过，不执行分析！')
+        print('\t\t\t目录分析过，不执行分析！\n')
         continue
     
     lAB1Files = AUtil.lGetAB1Files(strWorkDir)
-    if len(lAB1Files) == 0: continue
+    if len(lAB1Files) == 0: 
+        print('\t\t\t测序文件数为0\n')
+        continue
 
     random.shuffle(lAB1Files)
     lAB1 = [os.path.split(i)[1] for i in lAB1Files]
@@ -82,18 +89,20 @@ for strWorkDir in lDirs:
     #sAB1NoCalled = set(lAB1) - set(dSeq.keys())
     dSeq,dQual,sAB1NoCalled = AUtil.dBaseCallingByTtunerPerAB1(lProgPars,lAB1Files,strSeqSuff,strQualSuff,0,0)
     if len(sAB1NoCalled) > 0:
-        print('    警告：有AB1文件不能转换为序列文件，' + ','.join(sAB1NoCalled))
+        print('\t\t\t警告：有AB1文件不能转换为序列文件，' + ','.join(sAB1NoCalled))
     else:
-        print('    完成：BaseCalling')
+        print('\t\t\t完成：BaseCalling')
 
-    if len(dSeq) == 0:continue
+    if len(dSeq) == 0:
+        print('\t\t\t满足拼接要求文件数为0\n')
+        continue
 
     AUtil.bWriteSeqToFile(dSeq,strSeqFile)
     AUtil.bWriteQualToFile(dQual,strQualFile)
 
     dSample = AUtil.dGetAB1Sample(lAB1,".",1)
 
-    print('    开始：质量检测')
+    print('\t\t\t开始：质量检测')
     dRegion = dict()
     dQualStat = AQual.dQualityStat(strSeqFile,conf,strWorkDir,dRegion)
     lEmptyHQ = []
@@ -101,16 +110,16 @@ for strWorkDir in lDirs:
         if dRegion[k][0] == -1: lEmptyHQ.append(k)
     for k in lEmptyHQ:
         del dRegion[k]
-    print('    完成：质量检测')
+    print('\t\t\t完成：质量检测')
 
     dHQSeq = AUtil.dGetSubSeqFromFile(strSeqFile,dRegion,-1,1)
     dHQQual = AUtil.dGetSubQualFromFile(strQualFile,dRegion,-1,1)
     sQualRm = set(lAB1) - set(dHQSeq.keys())
 
-    print('    开始：序列拼接')
+    print('\t\t\t开始：序列拼接')
     dSeqASStat = dict()
-    dASStat = AASS.dCap3Assembly(dHQSeq,dHQQual,conf,strWorkDir,dSeqASStat)
-    print('    完成：序列拼接')
+    dASStat = AASS.dCap3Assembly(dHQSeq,dHQQual,conf,strWorkDir,dSeqASStat,'\t\t\t\t')
+    print('\t\t\t完成：序列拼接')
 
     dQualRm = dict()
     for strSeqId in sQualRm:
@@ -154,9 +163,14 @@ for strWorkDir in lDirs:
         if lv[1] == 'P': iNumPAssembly += 1
         if lv[1] == 'N': iNumNAssembly += 1
 
-    print('完成：总样品数,',len(dSample),';总测序文件数,',len(lAB1),';完全拼接样品数，',iNumAAssembly,';部分拼接样品数，',iNumPAssembly,';没有拼接样品数，',iNumNAssembly)
+    print('\t\t\t\t总样品数:',len(dSample))
+    print('\t\t\t\t总测序文件数:',len(lAB1))
+    print('\t\t\t\t完全拼接样品数:',iNumAAssembly)
+    print('\t\t\t\t部分拼接样品数:',iNumPAssembly)
+    print('\t\t\t\t没有拼接样品数:',iNumNAssembly)
+    print('\t\t完成订单(目录)：',strWorkDir)
 
-    print('开始:清理临时文件')
+    print('\t\t开始:清理临时文件')
     dKeeps = {
             'KeepAB1list' : 'all.ab1.list',
             'KeeprawSeq'  : 'all.fa',
@@ -171,4 +185,6 @@ for strWorkDir in lDirs:
         if not conf[k] and os.path.isfile(strFile):
             os.remove(strFile)
 
-    print('完成:清理临时文件\n\n')
+    print('\t\t完成:清理临时文件\n\n')
+
+print('测序文件拼接结束：',time.strftime('%Y-%m-%d %H:%M:%S',time.localtime()))

@@ -14,12 +14,12 @@ dKeeps = {
         'KeepInfo'     : '.cap.info',
         'KeepSinglets' : '.cap.singlets'
          }
-def dCap3Assembly(dSeq,dQual,conf,strWorkDir,dSeqStat = {}):
+def dCap3Assembly(dSeq,dQual,conf,strWorkDir,dSeqStat = {},strIndent = '\t\t'):
     dSamples = Utility.dGetAB1Sample(dSeq.keys(),'.',1)
     dAssemblyStat = dict()
     strReportF = strWorkDir + '/' + conf['Assembly']['Report']
     for strSample,lSeqs in dSamples.items():
-        print('      开始样品拼接：',strSample,' 测序文件数：',len(lSeqs))
+        print(strIndent,'开始样品拼接：',strSample,' 测序文件数：',len(lSeqs))
         dSampleSeq = dict()
         dSampleQual = dict()
         lReport = [strSample]
@@ -73,7 +73,7 @@ def dCap3Assembly(dSeq,dQual,conf,strWorkDir,dSeqStat = {}):
             lReport.append(';'.join(dSampleSeq.keys()))
         lReport += [len(lSeqRemoved),';'.join(lSeqRemoved)]
         dAssemblyStat[strSample] = lReport
-        print('      完成样品拼接：',strSample)
+        print(strIndent,'完成样品拼接：',strSample)
     return dAssemblyStat
 
 def lRenameContig(strContigFile,strToFile,strSample):

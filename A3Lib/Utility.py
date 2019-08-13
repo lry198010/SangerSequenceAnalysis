@@ -128,7 +128,6 @@ def dBaseCallingByTtunerPerAB1(lProgPars,lAB1Files,strSeqSuff, strQualSuff,bKeep
         #strAB1Esc = strAB1.replace('(',r'\(').replace(')',r'\)')
         strAB1Esc =  '"' + strAB1 + '"'
         lParams = lProgPars + ['-sa', strSeqFileEsc,'-qa',strQualFileEsc, strAB1Esc] 
-        print(" ".join(lParams))
         subP = dRunExternalProg(lParams)
         if subP.returncode == 0:
             dTmpSeq = dGetSeqFromFastFile(strSeqFile,bToSeqId)

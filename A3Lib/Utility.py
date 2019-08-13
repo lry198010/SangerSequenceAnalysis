@@ -120,11 +120,15 @@ def dBaseCallingByTtunerPerAB1(lProgPars,lAB1Files,strSeqSuff, strQualSuff,bKeep
         strFileDir,strFileStam = os.path.split(strAB1)
         if not os.path.isdir(strToDir): strToDir = strFileDir
         strSeqFile = strToDir + '/' + strFileStam + strSeqSuff
-        strSeqFileEsc = strSeqFile.replace('(',r'\(').replace(')',r'\)')
+        #strSeqFileEsc = strSeqFile.replace('(',r'\(').replace(')',r'\)')
+        strSeqFileEsc = '"' + strSeqFile + '"'
         strQualFile = strToDir + '/' + strFileStam + strQualSuff
-        strQualFileEsc = strQualFile.replace('(',r'\(').replace(')',r'\)')
-        strAB1Esc = strAB1.replace('(',r'\(').replace(')',r'\)')
+        #strQualFileEsc = strQualFile.replace('(',r'\(').replace(')',r'\)')
+        strQualFileEsc = '"' + strQualFile + '"'
+        #strAB1Esc = strAB1.replace('(',r'\(').replace(')',r'\)')
+        strAB1Esc =  '"' + strAB1 + '"'
         lParams = lProgPars + ['-sa', strSeqFileEsc,'-qa',strQualFileEsc, strAB1Esc] 
+        print(" ".join(lParams))
         subP = dRunExternalProg(lParams)
         if subP.returncode == 0:
             dTmpSeq = dGetSeqFromFastFile(strSeqFile,bToSeqId)
@@ -263,3 +267,7 @@ def bIsDirAnalysis(strWorkDir,conf):
     if len(sAB1Report) != len(sAB1s) : return 0
     if len(sAB1Report - sAB1s) != 0  : return 0
     return 1
+
+def strEscPath(strPath):
+    strPath = strPath.replace('(',r'\(')
+    return strPath

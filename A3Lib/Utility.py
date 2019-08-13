@@ -120,8 +120,11 @@ def dBaseCallingByTtunerPerAB1(lProgPars,lAB1Files,strSeqSuff, strQualSuff,bKeep
         strFileDir,strFileStam = os.path.split(strAB1)
         if not os.path.isdir(strToDir): strToDir = strFileDir
         strSeqFile = strToDir + '/' + strFileStam + strSeqSuff
+        strSeqFileEsc = strSeqFile.replace('(',r'\(').replace(')',r'\)')
         strQualFile = strToDir + '/' + strFileStam + strQualSuff
-        lParams = lProgPars + ['-sa', strSeqFile,'-qa',strQualFile, strAB1] 
+        strQualFileEsc = strQualFile.replace('(',r'\(').replace(')',r'\)')
+        strAB1Esc = strAB1.replace('(',r'\(').replace(')',r'\)')
+        lParams = lProgPars + ['-sa', strSeqFileEsc,'-qa',strQualFileEsc, strAB1Esc] 
         subP = dRunExternalProg(lParams)
         if subP.returncode == 0:
             dTmpSeq = dGetSeqFromFastFile(strSeqFile,bToSeqId)

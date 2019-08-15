@@ -94,7 +94,7 @@ def lRenameContig(strContigFile,strToFile,strSample,dSampleSeq):
         if iNum > 0: strSeqIdNew = str(iNum)
         if bToOritation(strBase,dSampleSeq,1):
             strBase = BioUtil.strGetDNAComplement(strBase)
-            strSeqIdNew += ' R'
+            #strSeqIdNew += ' R'
         strSeqIdNew = strSample + strSeqIdNew
         dSeqRnamed[strSeqIdNew] = strBase
         lSeqLen.append(len(strBase))

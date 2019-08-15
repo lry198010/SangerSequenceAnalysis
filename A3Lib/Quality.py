@@ -66,7 +66,7 @@ def dGetSeqQualStatByTtunerOut(strSeqQualFile,conf,strWorkDir,dCleanCover = {}):
     dLQRegion = dict()
     dSeq = Utility.dGetSeqFromFastFile(strSeqQualFile)
     for strSeqN in dSeq.keys():
-        print(strSeqN)
+        #print(strSeqN)
         strSeqId,iSeqLen, iHQStart, iHQLen = strSeqN.split()
         iSeqLen = int(iSeqLen)
         iHQStart = int(iHQStart)

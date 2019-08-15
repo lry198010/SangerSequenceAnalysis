@@ -2,7 +2,7 @@ import os,sys,fileinput #,Utility
 strLibPath = os.path.abspath(__file__) 
 strLibPath = os.path.split(strLibPath)[0]
 sys.path.append(strLibPath)
-import Utility
+import Utility,BioUtil
 
 dKeeps = {
         'KeepSeq'      : '',
@@ -44,23 +44,27 @@ def dCap3Assembly(dSeq,dQual,conf,strWorkDir,dSeqStat = {},strIndent = '\t\t'):
             lCap3Par.append(strConsFName)
             #print(' '.join(lCap3Par))
             Utility.dRunExternalProg(lCap3Par)
-            strContigF = strSeqStam + '.cap.contigs'
-            strContigToF = strWorkDir + '/' + strSample + conf['Assembly']['ContigAs']
-            lConLen = lRenameContig(strContigF,strContigToF,strSample)
             dSin = Utility.dGetSeqFromFastFile(strSeqStam + dKeeps['KeepSinglets'],1)
             for strSeq in dSin:
                 dSeqStat[strSeq] = 'S'
-            dASSeq = set(dSampleSeq.keys()) - set(dSin.keys())
-            for strSeq in dASSeq:
+            sASSeq = set(dSampleSeq.keys()) - set(dSin.keys())
+            dSampleSeqFoward = dict() 
+            for strSeq in sASSeq:
                 dSeqStat[strSeq] = 'A'
+                if Utility.bIsFoward(strSeq,iPrimer=2):
+                    dSampleSeqFoward[strSeq] = dSampleSeq[strSeq]
             strASStat = 'Y'
+
+            strContigF = strSeqStam + '.cap.contigs'
+            strContigToF = strWorkDir + '/' + strSample + conf['Assembly']['ContigAs']
+            lConLen = lRenameContig(strContigF,strContigToF,strSample,dSampleSeqFoward)
             if len(lConLen) > 0:
                 if len(dSin) > 0:
                     strASStat = 'P'
             else:
                 strASStat = 'N'
             strConLen = ';'.join([str(i) for i in lConLen])
-            strConSeq = ';'.join(dASSeq)
+            strConSeq = ';'.join(sASSeq)
             strSinSeq = ';'.join(dSin.keys())
             lReport += [strASStat,len(lConLen),strConLen,strConSeq,len(dSin),strSinSeq]
 
@@ -76,7 +80,8 @@ def dCap3Assembly(dSeq,dQual,conf,strWorkDir,dSeqStat = {},strIndent = '\t\t'):
         print(strIndent,'完成样品拼接：',strSample)
     return dAssemblyStat
 
-def lRenameContig(strContigFile,strToFile,strSample):
+
+def lRenameContig(strContigFile,strToFile,strSample,dSampleSeq):
     dSeq = Utility.dGetSeqFromFastFile(strContigFile,1)
     lSeqLen = list()
     if len(dSeq) == 0: 
@@ -87,6 +92,9 @@ def lRenameContig(strContigFile,strToFile,strSample):
     for strSeqId,strBase in dSeq.items():
         strSeqIdNew = ''
         if iNum > 0: strSeqIdNew = str(iNum)
+        if bToOritation(strBase,dSampleSeq,1):
+            strBase = BioUtil.strGetDNAComplement(strBase)
+            strSeqIdNew += ' R'
         strSeqIdNew = strSample + strSeqIdNew
         dSeqRnamed[strSeqIdNew] = strBase
         lSeqLen.append(len(strBase))
@@ -94,3 +102,16 @@ def lRenameContig(strContigFile,strToFile,strSample):
     os.remove(strContigFile)
     Utility.bWriteSeqToFile(dSeqRnamed,strToFile,iBasesPerLine = 80,strNewLine = '\r\n')
     return lSeqLen
+
+# 0 as dCompSeq, 1 complement of dCompSeq
+def bToOritation(strSeq,dCompSeq,iOritation = 0, iThreshold = 0.5):
+    if len(dCompSeq) == 0: return False
+    iNumOritationIdentity = 0
+    if iOritation: strSeq = BioUtil.strGetDNAComplement(strSeq)
+    for strSeq1 in dCompSeq.values():
+        if BioUtil.iAlignSeqsByKers(strSeq,strSeq1,10) > iThreshold : iNumOritationIdentity += 1
+    if iNumOritationIdentity / len(dCompSeq) > 0.5:
+        return True
+    else:
+        return False
+

@@ -267,6 +267,23 @@ def bIsDirAnalysis(strWorkDir,conf):
     if len(sAB1Report - sAB1s) != 0  : return 0
     return 1
 
+def bIsFoward(strSeq,iPrimer = 2):
+    lSeqComps = strSeq.split('.')
+    if len(lSeqComps) >= iPrimer + 1:
+        if lSeqComps[iPrimer][-1] == '1':
+            return True
+        if lSeqComps[iPrimer][-1] == 'f':
+            return True
+        if lSeqComps[iPrimer][-1] == 'F':
+            return True
+    return False
+
+def lGetFoward(lSeqs,iPrimer = 2):
+    lFoward = []
+    for strSeq in lSeqs:
+        if bIsFoward(strSeq,iPrimer): lFoward.append(strSeq)
+    return lFoward
+
 def strEscPath(strPath):
     strPath = strPath.replace('(',r'\(')
     return strPath

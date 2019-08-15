@@ -17,6 +17,11 @@ print(strWorkDir)
 lAB1Files = AU.lGetAB1Files(strWorkDir)
 lAB1 = [os.path.split(i)[1] for i in lAB1Files]
 
+print(len(lAB1))
+print(len(AU.lGetFoward(lAB1,2)))
+
+sys.exit(0)
+
 lTtunerPars = [conf['BaseCalling']['Program'],conf['BaseCalling']['Params']]
 strSeqSuff = conf['BaseCalling']['SeqSuff']
 strQualSuff = conf['BaseCalling']['QualSuff']

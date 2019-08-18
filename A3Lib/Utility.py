@@ -1,5 +1,6 @@
-import os,json,subprocess,fileinput
+import os,json,subprocess,fileinput,string
 
+asciiWhiteSpace = b' \t\n\r\x0b\f'
 DateDirSep = '-'
 AB1FileSuffix = ("ab1","AB1","Ab1","aB1")
 def dGetSetting(strSettingJson):
@@ -144,6 +145,32 @@ def dBaseCallingByTtunerPerAB1(lProgPars,lAB1Files,strSeqSuff, strQualSuff,bKeep
             lCallFail.append(strAB1)
     return (dSeq,dQual,lCallFail)
 
+def dHetCallingByTtunerPerAB1(lProgPars,lAB1Files,strPhdSuff,bKeep = 1,bToSeqId = 0,strToDir='/dev/shm'):
+    dSeq = dict()
+    dQual = dict()
+    lCallFail = []
+    for strAB1 in lAB1Files:
+        if not os.path.isfile(strAB1): continue
+        strFileDir,strFileStam = os.path.split(strAB1)
+        if not os.path.isdir(strToDir): strToDir = strFileDir
+        strPhdFile = strToDir + '/' + strFileStam + strPhdSuff
+        strAB1Esc =  '"' + strAB1 + '"'
+        lParams = lProgPars + ['-pd', strToDir, strAB1Esc] 
+        subP = dRunExternalProg(lParams)
+        if subP.returncode == 0:
+            dTmpSeq = dGetSeqQualFromPhdFile(strPhdFile,0,bToSeqId)
+            dTmpQual = dGetSeqQualFromPhdFile(strPhdFile,1,bToSeqId)
+            for strSeqId,strSeq in dTmpSeq.items():
+                if not strSeqId in dSeq: dSeq[strSeqId] = strSeq
+
+            for strSeqId,lQual in dTmpQual.items():
+                if not strSeqId in dQual: dQual[strSeqId] = lQual
+            if not bKeep:
+                if os.path.isfile(strPhdFile): os.remove(strPhdFile)
+        else:
+            lCallFail.append(strAB1)
+    return (dSeq,dQual,lCallFail)
+
 def dRunExternalProg(lProgPars):
     strRun = " ".join(lProgPars)
     subP = subprocess.run(" ".join(lProgPars),shell = True)
@@ -186,6 +213,40 @@ def dGetQualFromFastFile(strFastQualFile,bToSeqId = 0):
     for strSeqN,strQual in dSeq.items():
         dSeq[strSeqN] = strQual.split()
     return dSeq
+
+# iSQ: = 0, get Seq; 1, get qual; 2, get peak location
+def dGetSeqQualFromPhdFile(strPhdFile,iSQ = 1,bToSeqId = 0):
+    dSQ = dict()
+    strSeqId = ''
+    bBeginSeq = 0
+    strTrim = ''
+    lSQ = []
+    if os.path.isfile(strPhdFile):
+        with fileinput.input(strPhdFile) as lines:
+            for line in lines:
+                line = line.strip()
+                if line.startswith('CHROMAT_FILE:'):
+                    strSeqId = line.split(':')[1].strip()
+                if line.startswith('TRIM'):
+                    strTrim = line.split(':')[1].strip()
+                if line == 'END_DNA': 
+                    bBeginSeq = 0
+                    if not bToSeqId: strSeqId = ' '.join([strSeqId,str(len(lSQ)),strTrim])
+                    if not strSeqId in dSQ: dSQ[strSeqId] = lSQ
+                    strSeqId = ''
+                    strTrim = ''
+                    lSQ = []
+                if line == 'BEGIN_DNA': bBeginSeq = 1
+                if bBeginSeq == 1:
+                    lDNACall = line.split()
+                    if len(lDNACall) == 3:
+                        lSQ.append(lDNACall[iSQ])
+        if iSQ == 0:
+            for strK,lSQ in dSQ.items(): dSQ[strK] = ''.join(lSQ)
+    else:
+        pass
+    return dSQ
+
 
 def bWriteSeqToFile(dSeq,strToFile,iBasesPerLine = 60,strNewLine = '\n'):
     fout = open(strToFile,'w')
@@ -284,6 +345,24 @@ def lGetFoward(lSeqs,iPrimer = 2):
         if bIsFoward(strSeq,iPrimer): lFoward.append(strSeq)
     return lFoward
 
-def strEscPath(strPath):
-    strPath = strPath.replace('(',r'\(')
-    return strPath
+def bHasWhiteSpace(strString):
+    for ws in string.whitespace:
+        if ws in strString:
+            return 1
+    return 0
+
+def strWhiteSpaceRM(strString):
+   return ''.join([s for s in strString if not s in string.whitespace])
+
+# return new filepath
+def strWhiteSpaceRMFromFileName(strFilePath):
+    strDir,strFile = os.path.split(strFilePath)
+    if bHasWhiteSpace(strFile):
+        if strDir: strDir = strDir + '/'
+        strNewFilePath = strDir + strWhiteSpaceRM(strFile)
+        if not os.path.isfile(strNewFilePath):
+            os.replace(strFilePath,strNewFilePath)
+            return strNewFilePath
+        else:
+            print('警告：文件名行有whitespace，但不能重命名:"' + strFilePath + '" "' + strNewFilePath + '"')
+    return strFilePath

@@ -15,7 +15,8 @@ dKeeps = {
         'KeepSinglets' : '.cap.singlets'
          }
 def dCap3Assembly(dSeq,dQual,conf,strWorkDir,dSeqStat = {},strIndent = '\t\t'):
-    dSamples = Utility.dGetAB1Sample(dSeq.keys(),'.',1)
+    iSampleIndex = conf['SampleIndex']
+    dSamples = Utility.dGetAB1Sample(dSeq.keys(),'.',iSampleIndex)
     dAssemblyStat = dict()
     strReportF = strWorkDir + '/' + conf['Assembly']['Report']
     for strSample,lSeqs in dSamples.items():

@@ -15,7 +15,9 @@ strConfF = ''
 bVectorTrim = 0
 iNumSubDirs = 5
 
-print('测序文件拼接开始：',time.strftime('%Y-%m-%d %H:%M:%S',time.localtime()))
+strTime = time.strftime('%Y-%m-%d %H:%M:%S',time.localtime())
+print('测序文件拼接开始：',strTime)
+sys.stderr.write('拼接开始:' + strTime + '\n')
 opts,args = getopt.gnu_getopt(sys.argv[1:],'F:D:VN:h')
 for opt in opts:
     if opt[0] == '-h' : 
@@ -65,7 +67,10 @@ if bVectorTrim == 1:
     conf['Qual']['VectorScreen'] = bVectorTrim
 
 for strWorkDir in lDirs:
-    print('\t\t开始分析目录(订单):',strWorkDir)
+
+    strTime = time.strftime('%Y-%m-%d %H:%M:%S',time.localtime())
+    print('\t\t开始分析目录(订单):',strWorkDir,strTime)
+    sys.stderr.write('\t\t开始分析目录(订单):' + strWorkDir + ' ' + strTime + '\n')
     if AUtil.bIsDirAnalysis(strWorkDir,conf):
         print('\t\t\t目录分析过，不执行分析！\n')
         continue
@@ -74,6 +79,7 @@ for strWorkDir in lDirs:
     if len(lAB1Files) == 0: 
         print('\t\t\t测序文件数为0\n')
         continue
+    lAB1Files = [AUtil.strWhiteSpaceRMFromFileName(f) for f in lAB1Files]
 
     random.shuffle(lAB1Files)
     lAB1 = [os.path.split(i)[1] for i in lAB1Files]
@@ -84,9 +90,12 @@ for strWorkDir in lDirs:
     strSeqFile = strWorkDir + '/' + conf['rawSeq']
     strQualFile = strWorkDir + '/' + conf['rawQual']
     strToList = strWorkDir + '/' + conf['AB1ListFile']
+    iSampleIndex = conf['SampleIndex']
 
     #dSeq = AUtil.dBaseCallingByTtuner(lProgPars,lAB1Files,strSeqFile,strQualFile,strToList)
     #sAB1NoCalled = set(lAB1) - set(dSeq.keys())
+
+    print('\t\t\t开始：BaseCalling')
     dSeq,dQual,sAB1NoCalled = AUtil.dBaseCallingByTtunerPerAB1(lProgPars,lAB1Files,strSeqSuff,strQualSuff,0,0)
     if len(sAB1NoCalled) > 0:
         print('\t\t\t警告：有AB1文件不能转换为序列文件，' + ','.join(sAB1NoCalled))
@@ -100,7 +109,7 @@ for strWorkDir in lDirs:
     AUtil.bWriteSeqToFile(dSeq,strSeqFile)
     AUtil.bWriteQualToFile(dQual,strQualFile)
 
-    dSample = AUtil.dGetAB1Sample(lAB1,".",1)
+    dSample = AUtil.dGetAB1Sample(lAB1,".",iSampleIndex)
 
     print('\t\t\t开始：质量检测')
     dRegion = dict()
@@ -187,4 +196,6 @@ for strWorkDir in lDirs:
 
     print('\t\t完成:清理临时文件\n\n')
 
-print('测序文件拼接结束：',time.strftime('%Y-%m-%d %H:%M:%S',time.localtime()))
+strTime = time.strftime('%Y-%m-%d %H:%M:%S',time.localtime())
+print('测序文件拼接结束：',strTime)
+sys.stderr.write('拼接结束:' + strTime + '\n')
